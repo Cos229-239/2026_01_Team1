@@ -179,8 +179,7 @@ fun TasksScreen(
         }
     }
 }
-
-//--- TASK ITEM ---
+// --- Splash Screen ---
 @Composable
 fun SplashScreen() {
     Surface(
@@ -211,6 +210,7 @@ fun SplashScreen() {
         }
     }
 }
+//--- TASK ITEM ---
 @Composable
 fun TaskItem(
     task: Task,

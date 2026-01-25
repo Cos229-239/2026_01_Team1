@@ -394,3 +394,6 @@ firestore-debug.log
 !README.md
 !docs/**
 !.github/workflows/*.yml
+
+# Android local SDK config (machine-specific)
+local.properties

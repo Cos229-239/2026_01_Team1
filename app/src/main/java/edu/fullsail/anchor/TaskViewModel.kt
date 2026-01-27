@@ -15,63 +15,41 @@ class TaskViewModel : ViewModel() {
 
     val tasks = mutableStateListOf<Task>()
 
-
-    fun addTask(
-        title: String,
-        day: String,
-        month: String,
-        year: String,
-        priority: String,
-        timeframe: String
-    ): ValidationResult {
-        val validation = validateInput(title, day, month, year)
-        if (validation is ValidationResult.Success) {
-            tasks.add(
-                Task(
-                    title = title.trim(),
-                    day = day,
-                    month = month,
-                    year = year,
-                    priority = priority,
-                    timeframe = timeframe
-                )
-            )
-            return ValidationResult.Success
+    fun addTask(title: String, dueDateMillis: Long?, priority: String, timeframe: String): ValidationResult {
+        if (title.isBlank()) {
+            return ValidationResult.Error("Title cannot be empty.")
         }
-        return validation
+        val newTask = Task(
+            title = title,
+            dueDateMillis = dueDateMillis,
+            priority = priority,
+            timeframe = timeframe
+        )
+        // FIX: Use .add() instead of reassignment
+        tasks.add(newTask)
+        return ValidationResult.Success
     }
-
 
     fun deleteTask(taskId: String) {
         tasks.removeIf { it.id == taskId }
     }
 
-    fun updateTask(
-        taskId: String,
-        title: String,
-        day: String,
-        month: String,
-        year: String,
-        priority: String,
-        timeframe: String
-    ): ValidationResult {
-        val validation = validateInput(title, day, month, year)
-        if (validation is ValidationResult.Success) {
-            val taskIndex = tasks.indexOfFirst { it.id == taskId }
-            if (taskIndex != -1) {
-                tasks[taskIndex] = tasks[taskIndex].copy(
-                    title = title.trim(),
-                    day = day,
-                    month = month,
-                    year = year,
-                    priority = priority,
-                    timeframe = timeframe
-                )
-                return ValidationResult.Success
-            }
-            return ValidationResult.Error("Task not found.")
+    fun updateTask(id: String, title: String, dueDateMillis: Long?, priority: String, timeframe: String): ValidationResult {
+        if (title.isBlank()) {
+            return ValidationResult.Error("Title cannot be empty.")
         }
-        return validation
+
+        // FIX: Find the index and update the element directly
+        val taskIndex = tasks.indexOfFirst { it.id == id }
+        if (taskIndex != -1) {
+            tasks[taskIndex] = tasks[taskIndex].copy(
+                title = title,
+                dueDateMillis = dueDateMillis,
+                priority = priority,
+                timeframe = timeframe
+            )
+        }
+        return ValidationResult.Success
     }
 
     fun toggleTaskCompletion(taskId: String) {
@@ -86,9 +64,7 @@ class TaskViewModel : ViewModel() {
         return tasks.find { it.id == taskId }
     }
 
-
-    // --- Private Validation Logic ---
-
+    // --- Validation Logic (unchanged) ---
     private fun validateInput(title: String, dayStr: String, monthStr: String, yearStr: String): ValidationResult {
         if (title.isBlank()) {
             return ValidationResult.Error("Title cannot be empty.")

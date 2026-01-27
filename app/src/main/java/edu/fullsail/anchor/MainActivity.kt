@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -84,6 +85,9 @@ fun AppNavigation() {
                     navController = navController,
                     taskViewModel = taskViewModel
                 )
+            }
+            composable("badges_screen"){
+                edu.fullsail.anchor.engagement.badges.BadgesScreen()
             }
             composable(
                 route = "create_task_screen?taskId={taskId}",
@@ -336,11 +340,14 @@ fun BottomNavigationBar(navController: NavController) {
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Add Task")
         }
+        /*
+        Navigation bar for Badges screen
+         */
         NavigationBarItem(
-            icon = { Icon(Icons.Filled.Add, contentDescription = "Placeholders") },
-            label = { Text("...") },
+            icon = { Icon(Icons.Filled.Star, contentDescription = "Badges") },
+            label = { Text("Badges") },
             selected = false,
-            onClick = { /* Coming Soon */ }
+            onClick = { navController.navigate("badges_screen")}
         )
     }
 }

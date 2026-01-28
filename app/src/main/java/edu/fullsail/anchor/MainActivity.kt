@@ -36,6 +36,21 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import edu.fullsail.anchor.ui.theme.AnchorTheme
+import kotlinx.coroutines.delay
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.Composable
+import androidx.compose.material3.Text
+import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
 import java.util.UUID
 
 
@@ -68,7 +83,21 @@ class MainActivity : ComponentActivity() {
                     .isAppearanceLightStatusBars = !isDarkTheme
             }
             AnchorTheme {
-                AppNavigation()
+                // track which screen is showing
+                var showSplash by remember { mutableStateOf(true) }
+                // Launch the coroutine(splashscreen) that will switch after 3 seconds
+                LaunchedEffect(Unit) {
+                    delay(3000) // this is 3000ms or 3 seconds
+                    showSplash = false
+                }
+                if (showSplash) {
+                    SplashScreen()
+                } else {
+                    // after displaying splashscreen then switch to main app.
+                    Scaffold { innerPadding ->
+                        AppNavigation(innerPadding)
+                    }
+                }
             }
         }
     }
@@ -76,7 +105,7 @@ class MainActivity : ComponentActivity() {
 
 //--- NAVIGATION ---
 @Composable
-fun AppNavigation() {
+fun AppNavigation(innerPadding: PaddingValues) {
     val navController = rememberNavController()
     val taskViewModel: TaskViewModel = viewModel()
 
@@ -164,7 +193,38 @@ fun TasksScreen(
         }
     }
 }
+// --- Splash Screen ---
+@Composable
+fun SplashScreen() {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background // will match light or dark theme if we switch color
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Anchor",
+                    // hardcoding the font color for now as the Teal we picked. May make a variable to use it later
+                    color = Color(0xFF2F9E97),
+                    fontSize = 30.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
 
+                Text(
+                    text = "Anchor what matters today",
+                    // hardcoding Teal color here as well.
+                    color = Color(0xFF2F9E97),
+                    fontSize = 16.sp
+                )
+            }
+        }
+    }
+}
 //--- TASK ITEM ---
 @Composable
 fun TaskItem(

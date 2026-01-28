@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity() {
                 if (showSplash) {
                     SplashScreen()
                 } else {
+                    // after displaying splashscreen then switch to main app.
                     Scaffold { innerPadding ->
                         AppNavigation(innerPadding)
                     }
@@ -200,7 +201,7 @@ fun SplashScreen() {
             ) {
                 Text(
                     text = "Anchor",
-                    // hardcoding the font color for now. May make a variable to use it later
+                    // hardcoding the font color for now as the Teal we picked. May make a variable to use it later
                     color = Color(0xFF2F9E97),
                     fontSize = 30.sp
                 )
@@ -208,6 +209,7 @@ fun SplashScreen() {
 
                 Text(
                     text = "Anchor what matters today",
+                    // hardcoding Teal color here as well.
                     color = Color(0xFF2F9E97),
                     fontSize = 16.sp
                 )

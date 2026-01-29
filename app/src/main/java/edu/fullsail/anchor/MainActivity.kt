@@ -78,8 +78,20 @@ data class Task(
             val days = TimeUnit.MILLISECONDS.toDays(diff)
 
             return when {
-                days == 0L -> "Due today at ${SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(dueDateMillis))}"
-                days == 1L -> "Due tomorrow at ${SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(dueDateMillis))}"
+                days == 0L -> "Due today at ${
+                    SimpleDateFormat(
+                        "h:mm a",
+                        Locale.getDefault()
+                    ).format(Date(dueDateMillis))
+                }"
+
+                days == 1L -> "Due tomorrow at ${
+                    SimpleDateFormat(
+                        "h:mm a",
+                        Locale.getDefault()
+                    ).format(Date(dueDateMillis))
+                }"
+
                 days < 0L -> "${-days} days overdue"
                 else -> {
                     val sdf = SimpleDateFormat("MMMM dd, yyyy 'at' h:mm a", Locale.getDefault())
@@ -140,7 +152,7 @@ fun AppNavigation(innerPadding: PaddingValues) {
                     taskViewModel = taskViewModel
                 )
             }
-            composable("badges_screen"){
+            composable("badges_screen") {
                 edu.fullsail.anchor.engagement.badges.BadgesScreen()
             }
             composable(
@@ -172,7 +184,16 @@ fun TasksScreen(
     val groupedTasks = tasks.groupBy { it.timeframe }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Tasks") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Tasks") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF2F9E97),
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                )
+            )
+        }
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -210,9 +231,11 @@ fun TasksScreen(
         }
     }
 }
+
 // --- Splash Screen ---
 @Composable
 fun SplashScreen() {
+    val anchorTeal = Color(0xFF2F9E97)
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background // will match light or dark theme if we switch color
@@ -226,16 +249,16 @@ fun SplashScreen() {
             ) {
                 Text(
                     text = "Anchor",
-                    // hardcoding the font color for now as the Teal we picked. May make a variable to use it later
-                    color = Color(0xFF2F9E97),
+                    // variable created for teal
+                    color = anchorTeal,
                     fontSize = 30.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     text = "Anchor what matters today",
-                    // hardcoding Teal color here as well.
-                    color = Color(0xFF2F9E97),
+                    // Variable used for teal
+                    color = anchorTeal,
                     fontSize = 16.sp
                 )
             }
@@ -338,6 +361,7 @@ fun CreateTaskScreen(
     taskViewModel: TaskViewModel,
     taskId: String?
 ) {
+    val anchorTeal = Color(0xFF2F9E97)
     val isEditing = taskId != null
     val taskToEdit = if (isEditing) taskViewModel.getTaskById(taskId!!) else null
 
@@ -346,14 +370,22 @@ fun CreateTaskScreen(
     val priorityOptions = listOf("High", "Medium", "Low")
     var selectedPriority by remember { mutableStateOf(taskToEdit?.priority ?: priorityOptions[1]) }
     val timeframeOptions = listOf("Daily", "Weekly", "Monthly", "Yearly")
-    var selectedTimeframe by remember { mutableStateOf(taskToEdit?.timeframe ?: timeframeOptions[0]) }
+    var selectedTimeframe by remember {
+        mutableStateOf(
+            taskToEdit?.timeframe ?: timeframeOptions[0]
+        )
+    }
     var validationError by remember { mutableStateOf<String?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dueDateMillis)
     val timePickerState = rememberTimePickerState(
-        initialHour = dueDateMillis?.let { Calendar.getInstance().apply { timeInMillis = it }.get(Calendar.HOUR_OF_DAY) } ?: 0,
-        initialMinute = dueDateMillis?.let { Calendar.getInstance().apply { timeInMillis = it }.get(Calendar.MINUTE) } ?: 0
+        initialHour = dueDateMillis?.let {
+            Calendar.getInstance().apply { timeInMillis = it }.get(Calendar.HOUR_OF_DAY)
+        } ?: 0,
+        initialMinute = dueDateMillis?.let {
+            Calendar.getInstance().apply { timeInMillis = it }.get(Calendar.MINUTE)
+        } ?: 0
     )
 
     Scaffold(
@@ -364,7 +396,12 @@ fun CreateTaskScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF2F9E97),
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
             )
         }
     ) { innerPadding ->
@@ -376,45 +413,90 @@ fun CreateTaskScreen(
         ) {
             // --- All input fields ---
             Text(text = "Task Title")
-            OutlinedTextField(value = titleInput, onValueChange = { titleInput = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(
+                value = titleInput,
+                onValueChange = { titleInput = it },
+                label = { Text("Title") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
             Spacer(modifier = Modifier.height(24.dp))
             Text(text = "Due Date")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { showDatePicker = true }) {
-                    Text(text = dueDateMillis?.let { SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault()).format(Date(it)) } ?: "Select a date")
+                // --------- DATE BUTTON --------
+                Button(
+                    onClick = { showDatePicker = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = anchorTeal,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(text = dueDateMillis?.let {
+                        SimpleDateFormat(
+                            "MMMM dd, yyyy",
+                            Locale.getDefault()
+                        ).format(Date(it))
+                    } ?: "Select a date")
                 }
-                Button(onClick = { showTimePicker = true }) {
-                    Text(text = dueDateMillis?.let { SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(it)) } ?: "Select a time")
+                // --------- TIME BUTTON ----------
+                Button(
+                    onClick = { showTimePicker = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = anchorTeal,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(text = dueDateMillis?.let {
+                        SimpleDateFormat(
+                            "h:mm a",
+                            Locale.getDefault()
+                        ).format(Date(it))
+                    } ?: "Select a time")
                 }
             }
             if (showDatePicker) {
                 DatePickerDialog(
                     onDismissRequest = { showDatePicker = false },
                     confirmButton = {
-                        TextButton(onClick = {
-                            datePickerState.selectedDateMillis?.let { selectedDate ->
-                                val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-                                utcCal.timeInMillis = selectedDate
+                        TextButton(
+                            onClick = {
+                                datePickerState.selectedDateMillis?.let { selectedDate ->
+                                    val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                                    utcCal.timeInMillis = selectedDate
 
-                                val localCal = Calendar.getInstance()
-                                dueDateMillis?.let {
-                                    localCal.timeInMillis = it
+                                    val localCal = Calendar.getInstance()
+                                    dueDateMillis?.let {
+                                        localCal.timeInMillis = it
+                                    }
+
+                                    localCal.set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
+                                    localCal.set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
+                                    localCal.set(
+                                        Calendar.DAY_OF_MONTH,
+                                        utcCal.get(Calendar.DAY_OF_MONTH)
+                                    )
+
+                                    dueDateMillis = localCal.timeInMillis
                                 }
-
-                                localCal.set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
-                                localCal.set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
-                                localCal.set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
-
-                                dueDateMillis = localCal.timeInMillis
-                            }
-                            showDatePicker = false
-                        }) {
-                            Text("OK")
+                                showDatePicker = false
+                            },
+                            colors = ButtonDefaults.textButtonColors(containerColor = anchorTeal)
+                        ) {
+                            Text(
+                                "OK",
+                                color = Color.White
+                            )
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showDatePicker = false }) {
-                            Text("Cancel")
+                        TextButton(
+                            onClick = { showDatePicker = false },
+                            colors = ButtonDefaults.textButtonColors(containerColor = anchorTeal)
+                        ) {
+                            Text(
+                                "Cancel",
+                                color = Color.White
+                            )
                         }
                     }
                 ) {
@@ -483,13 +565,24 @@ fun CreateTaskScreen(
             }
 
             Spacer(modifier = Modifier.weight(1f))
-
+            // -------------- SAVE BUTTON ------------
             Button(
                 onClick = {
                     val result = if (isEditing) {
-                        taskViewModel.updateTask(taskId!!, titleInput, dueDateMillis, selectedPriority, selectedTimeframe)
+                        taskViewModel.updateTask(
+                            taskId!!,
+                            titleInput,
+                            dueDateMillis,
+                            selectedPriority,
+                            selectedTimeframe
+                        )
                     } else {
-                        taskViewModel.addTask(titleInput, dueDateMillis, selectedPriority, selectedTimeframe)
+                        taskViewModel.addTask(
+                            titleInput,
+                            dueDateMillis,
+                            selectedPriority,
+                            selectedTimeframe
+                        )
                     }
 
                     when (result) {
@@ -499,7 +592,11 @@ fun CreateTaskScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = anchorTeal,
+                    contentColor = Color.White
+                )
             ) {
                 Text(if (isEditing) "Update Task" else "Save Task", fontSize = 16.sp)
             }
@@ -525,17 +622,24 @@ fun TimePickerDialog(
     onConfirm: (hour: Int, minute: Int) -> Unit,
     state: TimePickerState
 ) {
+    val anchorTeal = Color(0xFF2F9E97)
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text("Select Time") },
         text = { TimePicker(state = state) },
         confirmButton = {
-            TextButton(onClick = { onConfirm(state.hour, state.minute) }) {
+            TextButton(
+                onClick = { onConfirm(state.hour, state.minute) },
+                colors = ButtonDefaults.textButtonColors(contentColor = anchorTeal)
+            ) {
                 Text("OK")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismissRequest) {
+            TextButton(
+                onClick = onDismissRequest,
+                colors = ButtonDefaults.textButtonColors(contentColor = anchorTeal)
+            ) {
                 Text("Cancel")
             }
         }
@@ -555,7 +659,9 @@ fun BottomNavigationBar(navController: NavController) {
         FloatingActionButton(
             onClick = { navController.navigate("create_task_screen") },
             modifier = Modifier.padding(top = 8.dp),
-            elevation = FloatingActionButtonDefaults.elevation(0.dp)
+            elevation = FloatingActionButtonDefaults.elevation(0.dp),
+            containerColor = Color(0xFF2F9E97),
+            contentColor = Color.White
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Add Task")
         }
@@ -566,7 +672,7 @@ fun BottomNavigationBar(navController: NavController) {
             icon = { Icon(Icons.Filled.Star, contentDescription = "Badges") },
             label = { Text("Badges") },
             selected = false,
-            onClick = { navController.navigate("badges_screen")}
+            onClick = { navController.navigate("badges_screen") }
         )
     }
 }

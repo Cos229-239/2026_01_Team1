@@ -188,7 +188,7 @@ fun TasksScreen(
             TopAppBar(
                 title = { Text("Tasks") },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF2F9E97),
+                    containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = Color.White,
                     actionIconContentColor = Color.White
                 )
@@ -235,7 +235,6 @@ fun TasksScreen(
 // --- Splash Screen ---
 @Composable
 fun SplashScreen() {
-    val anchorTeal = Color(0xFF2F9E97)
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background // will match light or dark theme if we switch color
@@ -249,16 +248,16 @@ fun SplashScreen() {
             ) {
                 Text(
                     text = "Anchor",
-                    // variable created for teal
-                    color = anchorTeal,
+                    // Using Color Palate from Dustin
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 30.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     text = "Anchor what matters today",
-                    // Variable used for teal
-                    color = anchorTeal,
+                    // Using Color Palate from Dustin
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 16.sp
                 )
             }
@@ -361,7 +360,6 @@ fun CreateTaskScreen(
     taskViewModel: TaskViewModel,
     taskId: String?
 ) {
-    val anchorTeal = Color(0xFF2F9E97)
     val isEditing = taskId != null
     val taskToEdit = if (isEditing) taskViewModel.getTaskById(taskId!!) else null
 
@@ -398,7 +396,7 @@ fun CreateTaskScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF2F9E97),
+                    containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -427,7 +425,7 @@ fun CreateTaskScreen(
                 Button(
                     onClick = { showDatePicker = true },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = anchorTeal,
+                        containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = Color.White
                     )
                 ) {
@@ -442,7 +440,7 @@ fun CreateTaskScreen(
                 Button(
                     onClick = { showTimePicker = true },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = anchorTeal,
+                        containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = Color.White
                     )
                 ) {
@@ -480,7 +478,7 @@ fun CreateTaskScreen(
                                 }
                                 showDatePicker = false
                             },
-                            colors = ButtonDefaults.textButtonColors(containerColor = anchorTeal)
+                            colors = ButtonDefaults.textButtonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Text(
                                 "OK",
@@ -491,7 +489,7 @@ fun CreateTaskScreen(
                     dismissButton = {
                         TextButton(
                             onClick = { showDatePicker = false },
-                            colors = ButtonDefaults.textButtonColors(containerColor = anchorTeal)
+                            colors = ButtonDefaults.textButtonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Text(
                                 "Cancel",
@@ -594,7 +592,7 @@ fun CreateTaskScreen(
                     .fillMaxWidth()
                     .height(48.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = anchorTeal,
+                    containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.White
                 )
             ) {
@@ -622,7 +620,6 @@ fun TimePickerDialog(
     onConfirm: (hour: Int, minute: Int) -> Unit,
     state: TimePickerState
 ) {
-    val anchorTeal = Color(0xFF2F9E97)
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text("Select Time") },
@@ -630,7 +627,7 @@ fun TimePickerDialog(
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(state.hour, state.minute) },
-                colors = ButtonDefaults.textButtonColors(contentColor = anchorTeal)
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 Text("OK")
             }
@@ -638,7 +635,7 @@ fun TimePickerDialog(
         dismissButton = {
             TextButton(
                 onClick = onDismissRequest,
-                colors = ButtonDefaults.textButtonColors(contentColor = anchorTeal)
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 Text("Cancel")
             }
@@ -660,7 +657,7 @@ fun BottomNavigationBar(navController: NavController) {
             onClick = { navController.navigate("create_task_screen") },
             modifier = Modifier.padding(top = 8.dp),
             elevation = FloatingActionButtonDefaults.elevation(0.dp),
-            containerColor = Color(0xFF2F9E97),
+            containerColor = MaterialTheme.colorScheme.primary,
             contentColor = Color.White
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Add Task")

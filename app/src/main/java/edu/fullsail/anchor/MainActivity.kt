@@ -34,6 +34,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import edu.fullsail.anchor.ui.theme.AnchorTheme
@@ -41,65 +42,6 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
-
-
-data class Task(
-    val id: String = UUID.randomUUID().toString(),
-    val title: String,
-    val dueDateMillis: Long?,
-    val priority: String,
-    val timeframe: String,
-    val isCompleted: Boolean = false
-) {
-    val dueDate: String
-        get() {
-            if (dueDateMillis == null) {
-                return ""
-            }
-
-            val today = Calendar.getInstance()
-            val dueDateCal = Calendar.getInstance()
-            dueDateCal.timeInMillis = dueDateMillis
-
-            // Reset time part for accurate day comparison
-            today.set(Calendar.HOUR_OF_DAY, 0)
-            today.set(Calendar.MINUTE, 0)
-            today.set(Calendar.SECOND, 0)
-            today.set(Calendar.MILLISECOND, 0)
-
-            val dueDateCalendar = Calendar.getInstance()
-            dueDateCalendar.timeInMillis = dueDateMillis
-            dueDateCalendar.set(Calendar.HOUR_OF_DAY, 0)
-            dueDateCalendar.set(Calendar.MINUTE, 0)
-            dueDateCalendar.set(Calendar.SECOND, 0)
-            dueDateCalendar.set(Calendar.MILLISECOND, 0)
-
-            val diff = dueDateCalendar.timeInMillis - today.timeInMillis
-            val days = TimeUnit.MILLISECONDS.toDays(diff)
-
-            return when {
-                days == 0L -> "Due today at ${
-                    SimpleDateFormat(
-                        "h:mm a",
-                        Locale.getDefault()
-                    ).format(Date(dueDateMillis))
-                }"
-
-                days == 1L -> "Due tomorrow at ${
-                    SimpleDateFormat(
-                        "h:mm a",
-                        Locale.getDefault()
-                    ).format(Date(dueDateMillis))
-                }"
-
-                days < 0L -> "${-days} days overdue"
-                else -> {
-                    val sdf = SimpleDateFormat("MMMM dd, yyyy 'at' h:mm a", Locale.getDefault())
-                    sdf.format(Date(dueDateMillis))
-                }
-            }
-        }
-}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -646,11 +588,14 @@ fun TimePickerDialog(
 //--- BOTTOM NAVIGATION BAR ---
 @Composable
 fun BottomNavigationBar(navController: NavController) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
     NavigationBar {
         NavigationBarItem(
             icon = { Icon(Icons.Filled.Add, contentDescription = "Tasks") },
             label = { Text("Tasks") },
-            selected = true,
+            selected = currentRoute == "tasks_screen",
             onClick = { navController.navigate("tasks_screen") }
         )
         FloatingActionButton(
@@ -668,7 +613,7 @@ fun BottomNavigationBar(navController: NavController) {
         NavigationBarItem(
             icon = { Icon(Icons.Filled.Star, contentDescription = "Badges") },
             label = { Text("Badges") },
-            selected = false,
+            selected = currentRoute == "badges_screen",
             onClick = { navController.navigate("badges_screen") }
         )
     }

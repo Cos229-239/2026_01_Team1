@@ -102,7 +102,7 @@ object BadgeIds {
     const val STEADFAST = "steadfast"
     const val ADVANCEMENT = "advancement"
     const val EXCEPTIONAL_WEEK = "exceptional_week"
-    const val TEN_IN_A_DAY = "ten_in_a_day "
+    const val TEN_IN_A_DAY = "ten_in_a_day"
 }
 /*
 Stats that drive badge progress

@@ -18,7 +18,8 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.lazy.items
-
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.Color
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,7 +33,12 @@ fun BadgesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Badges") }
+                title = { Text("Badges") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
             )
         }
     ) { innerPadding ->

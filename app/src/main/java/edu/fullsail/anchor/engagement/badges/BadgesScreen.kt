@@ -34,6 +34,7 @@ fun BadgesScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
+                    // test 
                 )
             )
         }

@@ -1,5 +1,7 @@
 package edu.fullsail.anchor.engagement.badges
 
+import edu.fullsail.anchor.R
+
 object BadgeRuleEngine {
     /*
     Initial badge definitions (locked)
@@ -11,7 +13,8 @@ object BadgeRuleEngine {
             description = "You completed your first task.",
             requirementText = "Complete 1 task",
             unlocked = false,
-            progress = 0f
+            progress = 0f,
+            iconRes = R.drawable.badge_anchor
         ),
         Badge(
             id= BadgeIds.STREAK_3,
@@ -19,7 +22,8 @@ object BadgeRuleEngine {
             description = "You kept your momentum going.",
             requirementText = "Complete 1 task per day for 3 days",
             unlocked = false,
-            progress = 0f
+            progress = 0f,
+            iconRes = R.drawable.badge_flame
         ),
         Badge(
             id= BadgeIds.STEADFAST,
@@ -27,7 +31,8 @@ object BadgeRuleEngine {
             description = "You cleared everything for the day.",
             requirementText = "Complete all tasks scheduled for one day",
             unlocked = false,
-            progress = 0f
+            progress = 0f,
+            iconRes = R.drawable.badge_checkmark
         ),
         Badge(
             id= BadgeIds.ADVANCEMENT,
@@ -35,7 +40,8 @@ object BadgeRuleEngine {
             description = "You made steady progress over time..",
             requirementText = "Complete 25 tasks total",
             unlocked = false,
-            progress = 0f
+            progress = 0f,
+            iconRes = R.drawable.badge_chevron
         ),
         Badge(
             id= BadgeIds.EXCEPTIONAL_WEEK,
@@ -43,7 +49,8 @@ object BadgeRuleEngine {
             description = "You showed up every day.",
             requirementText = "Complete at least 1 task per day for 7 days",
             unlocked = false,
-            progress = 0f
+            progress = 0f,
+            iconRes = R.drawable.badge_star
         ),
         Badge(
             id= BadgeIds.TEN_IN_A_DAY,
@@ -51,7 +58,8 @@ object BadgeRuleEngine {
             description = "You had a high-output day.",
             requirementText = "Complete 10 or more tasks in a single day",
             unlocked = false,
-            progress = 0f
+            progress = 0f,
+            iconRes = R.drawable.badge_shooting_star
         )
     )
     /*

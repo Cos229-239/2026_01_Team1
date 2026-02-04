@@ -1,4 +1,6 @@
 package edu.fullsail.anchor.engagement.badges
+
+import androidx.annotation.DrawableRes
 /*
 Rep a sing achievement badge in app
  */
@@ -8,7 +10,8 @@ data class Badge(
     val description: String,
     val requirementText: String,
     val unlocked: Boolean,
-    val progress: Float
+    val progress: Float,
+    @DrawableRes val iconRes: Int
 )
 
 /*

@@ -10,8 +10,14 @@ class BadgesViewModel (
     ) : ViewModel() {
     var badges by mutableStateOf(repo.getBadges())
         private set
-
-    fun refresh() {
+    init {
+        refreshBadges()
+    }
+    fun refreshBadges() {
         badges = repo.getBadges()
+    }
+    fun saveBadges(updated: List<Badge>){
+        repo.saveBadges(updated)
+        badges = updated
     }
 }

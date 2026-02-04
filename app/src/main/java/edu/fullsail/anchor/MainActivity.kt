@@ -1,6 +1,5 @@
 package edu.fullsail.anchor
 
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,6 +14,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,6 +38,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import edu.fullsail.anchor.ui.screens.PriorityScreen
 import edu.fullsail.anchor.ui.theme.AnchorTheme
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -54,49 +56,71 @@ class MainActivity : ComponentActivity() {
                     .isAppearanceLightStatusBars = !isDarkTheme
             }
             AnchorTheme {
-                // track which screen is showing
                 var showSplash by remember { mutableStateOf(true) }
-                // Launch the coroutine(splashscreen) that will switch after 3 seconds
                 LaunchedEffect(Unit) {
-                    delay(3000) // this is 3000ms or 3 seconds
+                    delay(3000) // 3 seconds
                     showSplash = false
                 }
                 if (showSplash) {
                     SplashScreen()
                 } else {
-                    // after displaying splashscreen then switch to main app.
-                    Scaffold { innerPadding ->
-                        AppNavigation(innerPadding)
-                    }
+                    AppNavigation()
                 }
             }
         }
     }
 }
 
-//--- NAVIGATION ---
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(innerPadding: PaddingValues) {
+fun AppNavigation() {
     val navController = rememberNavController()
     val taskViewModel: TaskViewModel = viewModel()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(navController) }
+        topBar = {
+            if (currentRoute in listOf("tasks_screen", "priority_screen", "badges_screen")) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            when (currentRoute) {
+                                "tasks_screen" -> "Tasks"
+                                "priority_screen" -> "Priority"
+                                "badges_screen" -> "Badges"
+                                else -> ""
+                            }
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = Color.White
+                    )
+                )
+            }
+        },
+        bottomBar = { BottomNavigationBar(navController) },
+        floatingActionButton = {
+            if (currentRoute in listOf("tasks_screen", "priority_screen")) {
+                FloatingActionButton(
+                    onClick = { navController.navigate("create_task_screen") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add Task")
+                }
+            }
+        }
     ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = "tasks_screen",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("tasks_screen") {
-                TasksScreen(
-                    navController = navController,
-                    taskViewModel = taskViewModel
-                )
-            }
-            composable("badges_screen") {
-                edu.fullsail.anchor.engagement.badges.BadgesScreen()
-            }
+            composable("tasks_screen") { TasksScreen(navController, taskViewModel) }
+            composable("priority_screen") { PriorityScreen(navController, taskViewModel) }
+            composable("badges_screen") { edu.fullsail.anchor.engagement.badges.BadgesScreen() }
             composable(
                 route = "create_task_screen?taskId={taskId}",
                 arguments = listOf(navArgument("taskId") {
@@ -116,58 +140,43 @@ fun AppNavigation(innerPadding: PaddingValues) {
 }
 
 //--- TASKS SCREEN ---
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TasksScreen(
     navController: NavController,
     taskViewModel: TaskViewModel
 ) {
-    val tasks = taskViewModel.tasks
+    val tasks by taskViewModel.tasks.collectAsState()
     val groupedTasks = tasks.groupBy { it.timeframe }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Tasks") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White,
-                    actionIconContentColor = Color.White
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        if (tasks.isEmpty()) {
+            item {
+                Text(
+                    "No tasks yet. Press the '+' button to add one!",
+                    modifier = Modifier.padding(top = 32.dp)
                 )
-            )
-        }
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            if (tasks.isEmpty()) {
+            }
+        } else {
+            groupedTasks.forEach { (timeframe, tasksInGroup) ->
                 item {
                     Text(
-                        "No tasks yet. Press the '+' button to add one!",
-                        modifier = Modifier.padding(top = 32.dp)
+                        text = timeframe,
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
                 }
-            } else {
-                groupedTasks.forEach { (timeframe, tasksInGroup) ->
-                    item {
-                        Text(
-                            text = timeframe,
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                        )
-                    }
-                    items(tasksInGroup, key = { it.id }) { task ->
-                        TaskItem(
-                            task = task,
-                            onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                            onDelete = { taskViewModel.deleteTask(task.id) },
-                            onToggleComplete = { taskViewModel.toggleTaskCompletion(task.id) }
-                        )
-                    }
+                items(tasksInGroup, key = { it.id }) { task ->
+                    TaskItem(
+                        task = task,
+                        onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
+                        onDelete = { taskViewModel.deleteTask(task.id) },
+                        onToggleComplete = { taskViewModel.toggleTaskCompletion(task.id) }
+                    )
                 }
             }
         }
@@ -508,26 +517,16 @@ fun CreateTaskScreen(
             // -------------- SAVE BUTTON ------------
             Button(
                 onClick = {
-                    val result = if (isEditing) {
-                        taskViewModel.updateTask(
-                            taskId!!,
-                            titleInput,
-                            dueDateMillis,
-                            selectedPriority,
-                            selectedTimeframe
-                        )
+                    val success = if (isEditing) {
+                        taskViewModel.updateTask(taskId!!, titleInput, dueDateMillis, selectedPriority, selectedTimeframe)
                     } else {
-                        taskViewModel.addTask(
-                            titleInput,
-                            dueDateMillis,
-                            selectedPriority,
-                            selectedTimeframe
-                        )
+                        taskViewModel.addTask(titleInput, dueDateMillis, selectedPriority, selectedTimeframe)
                     }
 
-                    when (result) {
-                        is ValidationResult.Success -> navController.popBackStack()
-                        is ValidationResult.Error -> validationError = result.message
+                    if (success) {
+                        navController.popBackStack()
+                    } else {
+                        validationError = "Title cannot be empty."
                     }
                 },
                 modifier = Modifier
@@ -593,28 +592,37 @@ fun BottomNavigationBar(navController: NavController) {
 
     NavigationBar {
         NavigationBarItem(
-            icon = { Icon(Icons.Filled.Add, contentDescription = "Tasks") },
+            icon = { Icon(Icons.Filled.List, contentDescription = "Tasks") },
             label = { Text("Tasks") },
             selected = currentRoute == "tasks_screen",
-            onClick = { navController.navigate("tasks_screen") }
+            onClick = {
+                navController.navigate("tasks_screen") {
+                    popUpTo(navController.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            }
         )
-        FloatingActionButton(
-            onClick = { navController.navigate("create_task_screen") },
-            modifier = Modifier.padding(top = 8.dp),
-            elevation = FloatingActionButtonDefaults.elevation(0.dp),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = Color.White
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "Add Task")
-        }
-        /*
-        Navigation bar for Badges screen
-         */
+        NavigationBarItem(
+            icon = { Icon(Icons.Filled.Flag, contentDescription = "Priority") },
+            label = { Text("Priority") },
+            selected = currentRoute == "priority_screen",
+            onClick = {
+                navController.navigate("priority_screen") {
+                    popUpTo(navController.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            }
+        )
         NavigationBarItem(
             icon = { Icon(Icons.Filled.Star, contentDescription = "Badges") },
             label = { Text("Badges") },
             selected = currentRoute == "badges_screen",
-            onClick = { navController.navigate("badges_screen") }
+            onClick = {
+                navController.navigate("badges_screen") {
+                    popUpTo(navController.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            }
         )
     }
 }

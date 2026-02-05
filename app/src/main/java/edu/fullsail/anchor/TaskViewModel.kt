@@ -13,8 +13,7 @@ class TaskViewModel : ViewModel() {
     val tasks = _tasks.asStateFlow()
 
     init {
-        // Add some sample data for demonstration purposes.
-        // In a real app, you would load this from a database or API.
+        // Added some sample data for demonstration purposes, so we can have something to show in the meeting.
         _tasks.value = listOf(
             Task(title = "Design new app icon", dueDateMillis = System.currentTimeMillis() + 172800000, priority = "High", timeframe = "Weekly"),
             Task(title = "Write team status report", dueDateMillis = System.currentTimeMillis() + 86400000, priority = "High", timeframe = "Daily"),
@@ -24,7 +23,7 @@ class TaskViewModel : ViewModel() {
             Task(title = "Respond to user feedback", dueDateMillis = System.currentTimeMillis() + 604800000, priority = "Medium", timeframe = "Weekly"),
             Task(title = "Update documentation", dueDateMillis = null, priority = "Low", timeframe = "Monthly"),
             Task(title = "Research new libraries", dueDateMillis = System.currentTimeMillis() + 1209600000, priority = "Low", timeframe = "Yearly"),
-            Task(title = "Refactor login screen", dueDateMillis = null, priority = "Not a priority", timeframe = "Monthly") // This should be ignored
+            Task(title = "Refactor login screen", dueDateMillis = null, priority = "Low", timeframe = "Monthly")
         )
     }
 

@@ -19,7 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,13 +34,17 @@ fun PriorityScreen(
     val allTasks by viewModel.tasks.collectAsState()
 
     // Memoize the filtered lists to avoid re-calculation on every recomposition.
-    val (high, medium, low) = remember(allTasks) {
+    val filteredTasks = remember(allTasks) {
         val incomplete = allTasks.filter { !it.isCompleted }
         val high = incomplete.filter { it.priority == "High" }
         val medium = incomplete.filter { it.priority == "Medium" }
         val low = incomplete.filter { it.priority == "Low" }
         Triple(high, medium, low)
     }
+
+    val high = filteredTasks.first
+    val medium = filteredTasks.second
+    val low = filteredTasks.third
 
     LazyColumn(
         contentPadding = PaddingValues(vertical = 16.dp),
@@ -53,7 +56,7 @@ fun PriorityScreen(
             val additionalCount = (focusCount - 3).coerceAtLeast(0)
             PrioritySectionHeader("⭐ Focus", additionalCount)
         }
-        items(high.take(3), key = { it.id }) { task ->
+        items(high.take(3), key = { task: Task -> task.id }) { task ->
             PriorityTaskRow(
                 task = task,
                 onToggle = { viewModel.toggleTaskCompletion(task.id) },
@@ -66,7 +69,7 @@ fun PriorityScreen(
         // --- ACTIVE Section (Medium Priority) ---
         if (medium.isNotEmpty()) {
             item { PrioritySectionHeader("☑ Active") }
-            items(medium, key = { it.id }) { task ->
+            items(medium, key = { task: Task -> task.id }) { task ->
                 PriorityTaskRow(
                     task = task,
                     onToggle = { viewModel.toggleTaskCompletion(task.id) },
@@ -80,7 +83,7 @@ fun PriorityScreen(
         // --- LATER/OPTIONAL Section (Low Priority) ---
         if (low.isNotEmpty()) {
             item { PrioritySectionHeader("⏳ Later/Optional") }
-            items(low, key = { it.id }) { task ->
+            items(low, key = { task: Task -> task.id }) { task ->
                 PriorityTaskRow(
                     task = task,
                     onToggle = { viewModel.toggleTaskCompletion(task.id) },

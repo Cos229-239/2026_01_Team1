@@ -34,17 +34,13 @@ fun PriorityScreen(
     val allTasks by viewModel.tasks.collectAsState()
 
     // Memoize the filtered lists to avoid re-calculation on every recomposition.
-    val filteredTasks = remember(allTasks) {
+    val (high, medium, low) = remember(allTasks) {
         val incomplete = allTasks.filter { !it.isCompleted }
         val high = incomplete.filter { it.priority == "High" }
         val medium = incomplete.filter { it.priority == "Medium" }
         val low = incomplete.filter { it.priority == "Low" }
         Triple(high, medium, low)
     }
-
-    val high = filteredTasks.first
-    val medium = filteredTasks.second
-    val low = filteredTasks.third
 
     LazyColumn(
         contentPadding = PaddingValues(vertical = 16.dp),
@@ -125,6 +121,8 @@ private fun PriorityTaskRow(
     onPriorityChange: (String) -> Unit
 ) {
     var showPriorityMenu by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
 
     Card(modifier = Modifier.padding(horizontal = 16.dp)) {
         Row(
@@ -145,10 +143,10 @@ private fun PriorityTaskRow(
                     Text(text = task.dueDate, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            IconButton(onClick = onEdit) {
+            IconButton(onClick = { showEditDialog = true }) {
                 Icon(Icons.Default.Edit, contentDescription = "Edit Task")
             }
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = { showDeleteDialog = true }) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete Task")
             }
             Box {
@@ -174,5 +172,55 @@ private fun PriorityTaskRow(
                 }
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(text = "Delete Task") },
+            text = { Text(text = "Are you sure you want to delete this task?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete()
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showEditDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text(text = "Edit Task") },
+            text = { Text(text = "Are you sure you want to edit this task?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onEdit()
+                        showEditDialog = false
+                    }
+                ) {
+                    Text("Edit")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showEditDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

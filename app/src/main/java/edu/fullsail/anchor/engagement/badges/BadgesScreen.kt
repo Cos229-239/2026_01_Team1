@@ -26,19 +26,7 @@ fun BadgesScreen(
 ) {
     val badges = badgesViewModel.badges
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Badges") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                    // test 
-                )
-            )
-        }
-    ) { innerPadding ->
+    Scaffold() { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(

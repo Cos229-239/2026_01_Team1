@@ -19,14 +19,10 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -43,8 +39,8 @@ import edu.fullsail.anchor.ui.theme.AnchorTheme
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.TimeUnit
 
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,7 +115,7 @@ fun AppNavigation() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("tasks_screen") { TasksScreen(navController, taskViewModel) }
-            composable("priority_screen") { PriorityScreen(navController, taskViewModel) }
+            composable("priority_screen") { PriorityScreen(navController = navController, viewModel = taskViewModel) }
             composable("badges_screen") { edu.fullsail.anchor.engagement.badges.BadgesScreen() }
             composable(
                 route = "create_task_screen?taskId={taskId}",
@@ -146,7 +142,7 @@ fun TasksScreen(
     taskViewModel: TaskViewModel
 ) {
     val tasks by taskViewModel.tasks.collectAsState()
-    val groupedTasks = tasks.groupBy { it.timeframe }
+    val groupedTasks = remember(tasks) { tasks.groupBy { it.timeframe } }
 
     LazyColumn(
         modifier = Modifier
@@ -163,7 +159,7 @@ fun TasksScreen(
             }
         } else {
             groupedTasks.forEach { (timeframe, tasksInGroup) ->
-                item {
+                item(key = "header_$timeframe") {
                     Text(
                         text = timeframe,
                         style = MaterialTheme.typography.titleLarge,
@@ -188,7 +184,7 @@ fun TasksScreen(
 fun SplashScreen() {
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background // will match light or dark theme if we switch color
+        color = MaterialTheme.colorScheme.background
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -199,24 +195,22 @@ fun SplashScreen() {
             ) {
                 Text(
                     text = "Anchor",
-                    // Using Color Palate from Dustin
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 30.sp
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Anchor what matters today",
-                    // Using Color Palate from Dustin
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 16.sp
+                    text = "Your productivity companion",
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
         }
     }
 }
 
-//--- TASK ITEM ---
+//--- TASK ITEM COMPOSABLE ---
 @Composable
 fun TaskItem(
     task: Task,
@@ -224,82 +218,54 @@ fun TaskItem(
     onDelete: () -> Unit,
     onToggleComplete: () -> Unit
 ) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var showEditDialog by remember { mutableStateOf(false) }
-
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
                 checked = task.isCompleted,
                 onCheckedChange = { onToggleComplete() }
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = task.title, fontWeight = FontWeight.Bold)
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp)
+            ) {
+                Text(
+                    text = task.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
                 if (task.dueDate.isNotBlank()) {
-                    Text(text = task.dueDate, style = MaterialTheme.typography.bodySmall)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = task.dueDate,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Priority: ${task.priority}",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
-            IconButton(onClick = { showEditDialog = true }) {
-                Icon(Icons.Filled.Edit, contentDescription = "Edit Task")
+
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit")
             }
-            IconButton(onClick = { showDeleteDialog = true }) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete Task")
+
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete")
             }
         }
-    }
-
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text(text = "Delete Task") },
-            text = { Text(text = "Are you sure you want to delete this task?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDelete()
-                        showDeleteDialog = false
-                    }
-                ) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showDeleteDialog = false }
-                ) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    if (showEditDialog) {
-        AlertDialog(
-            onDismissRequest = { showEditDialog = false },
-            title = { Text(text = "Edit Task") },
-            text = { Text(text = "Are you sure you want to edit this task?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onEdit()
-                        showEditDialog = false
-                    }
-                ) {
-                    Text("Edit")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showEditDialog = false }
-                ) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 }
 
@@ -309,33 +275,25 @@ fun TaskItem(
 fun CreateTaskScreen(
     navController: NavController,
     taskViewModel: TaskViewModel,
-    taskId: String?
+    taskId: String? = null
 ) {
     val isEditing = taskId != null
-    val taskToEdit = if (isEditing) taskViewModel.getTaskById(taskId!!) else null
+    val existingTask = taskId?.let { taskViewModel.getTaskById(it) }
 
-    var titleInput by remember { mutableStateOf(taskToEdit?.title ?: "") }
-    var dueDateMillis by remember { mutableStateOf(taskToEdit?.dueDateMillis) }
-    val priorityOptions = listOf("High", "Medium", "Low")
-    var selectedPriority by remember { mutableStateOf(taskToEdit?.priority ?: priorityOptions[1]) }
-    val timeframeOptions = listOf("Daily", "Weekly", "Monthly", "Yearly")
-    var selectedTimeframe by remember {
-        mutableStateOf(
-            taskToEdit?.timeframe ?: timeframeOptions[0]
-        )
-    }
-    var validationError by remember { mutableStateOf<String?>(null) }
+    var titleInput by remember { mutableStateOf(existingTask?.title ?: "") }
+    var dueDateMillis by remember { mutableStateOf(existingTask?.dueDateMillis) }
+    var selectedPriority by remember { mutableStateOf(existingTask?.priority ?: "High") }
+    var selectedTimeframe by remember { mutableStateOf(existingTask?.timeframe ?: "Daily") }
+
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dueDateMillis)
-    val timePickerState = rememberTimePickerState(
-        initialHour = dueDateMillis?.let {
-            Calendar.getInstance().apply { timeInMillis = it }.get(Calendar.HOUR_OF_DAY)
-        } ?: 0,
-        initialMinute = dueDateMillis?.let {
-            Calendar.getInstance().apply { timeInMillis = it }.get(Calendar.MINUTE)
-        } ?: 0
-    )
+    var validationError by remember { mutableStateOf<String?>(null) }
+
+    val datePickerState = rememberDatePickerState()
+    val timePickerState = rememberTimePickerState()
+
+    val priorityOptions = listOf("High", "Medium", "Low",)
+    val timeframeOptions = listOf("Daily", "Weekly", "Monthly", "Yearly")
 
     Scaffold(
         topBar = {
@@ -358,74 +316,81 @@ fun CreateTaskScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
-            // --- All input fields ---
-            Text(text = "Task Title")
+            Text(text = "Title", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = titleInput,
                 onValueChange = { titleInput = it },
-                label = { Text("Title") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                placeholder = { Text("Enter task title") }
             )
+
             Spacer(modifier = Modifier.height(24.dp))
-            Text(text = "Due Date")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // --------- DATE BUTTON --------
+
+            Text(text = "Due Date (Optional)", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Button(
                     onClick = { showDatePicker = true },
+                    modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = Color.White
                     )
                 ) {
-                    Text(text = dueDateMillis?.let {
-                        SimpleDateFormat(
-                            "MMMM dd, yyyy",
-                            Locale.getDefault()
-                        ).format(Date(it))
-                    } ?: "Select a date")
+                    Text(
+                        if (dueDateMillis != null) {
+                            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+                                .format(Date(dueDateMillis!!))
+                        } else {
+                            "Pick Date"
+                        }
+                    )
                 }
-                // --------- TIME BUTTON ----------
+
                 Button(
                     onClick = { showTimePicker = true },
+                    modifier = Modifier.weight(1f),
+                    enabled = dueDateMillis != null,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = Color.White
                     )
                 ) {
-                    Text(text = dueDateMillis?.let {
-                        SimpleDateFormat(
-                            "h:mm a",
-                            Locale.getDefault()
-                        ).format(Date(it))
-                    } ?: "Select a time")
+                    Text(
+                        if (dueDateMillis != null) {
+                            SimpleDateFormat("h:mm a", Locale.getDefault())
+                                .format(Date(dueDateMillis!!))
+                        } else {
+                            "Pick Time"
+                        }
+                    )
                 }
             }
+
+            if (dueDateMillis != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = { dueDateMillis = null }) {
+                    Text("Clear Due Date")
+                }
+            }
+
             if (showDatePicker) {
                 DatePickerDialog(
                     onDismissRequest = { showDatePicker = false },
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                datePickerState.selectedDateMillis?.let { selectedDate ->
-                                    val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-                                    utcCal.timeInMillis = selectedDate
-
-                                    val localCal = Calendar.getInstance()
-                                    dueDateMillis?.let {
-                                        localCal.timeInMillis = it
+                                datePickerState.selectedDateMillis?.let { millis ->
+                                    val calendar = Calendar.getInstance().apply {
+                                        timeInMillis = millis
+                                        set(Calendar.HOUR_OF_DAY, 23)
+                                        set(Calendar.MINUTE, 59)
                                     }
-
-                                    localCal.set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
-                                    localCal.set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
-                                    localCal.set(
-                                        Calendar.DAY_OF_MONTH,
-                                        utcCal.get(Calendar.DAY_OF_MONTH)
-                                    )
-
-                                    dueDateMillis = localCal.timeInMillis
+                                    dueDateMillis = calendar.timeInMillis
                                 }
                                 showDatePicker = false
                             },
@@ -455,7 +420,7 @@ fun CreateTaskScreen(
             if (showTimePicker) {
                 TimePickerDialog(
                     onDismissRequest = { showTimePicker = false },
-                    onConfirm = { hour, minute ->
+                    onConfirm = { hour: Int, minute: Int ->
                         val cal = Calendar.getInstance()
                         dueDateMillis?.let { cal.timeInMillis = it }
                         cal.set(Calendar.HOUR_OF_DAY, hour)
@@ -518,7 +483,7 @@ fun CreateTaskScreen(
             Button(
                 onClick = {
                     val success = if (isEditing) {
-                        taskViewModel.updateTask(taskId!!, titleInput, dueDateMillis, selectedPriority, selectedTimeframe)
+                        taskViewModel.updateTask(taskId, titleInput, dueDateMillis, selectedPriority, selectedTimeframe)
                     } else {
                         taskViewModel.addTask(titleInput, dueDateMillis, selectedPriority, selectedTimeframe)
                     }
@@ -558,7 +523,7 @@ fun CreateTaskScreen(
 @Composable
 fun TimePickerDialog(
     onDismissRequest: () -> Unit,
-    onConfirm: (hour: Int, minute: Int) -> Unit,
+    onConfirm: (Int, Int) -> Unit,
     state: TimePickerState
 ) {
     AlertDialog(

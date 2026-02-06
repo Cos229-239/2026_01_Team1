@@ -114,7 +114,7 @@ fun AppNavigation() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "tasks_screen",
+            startDestination = "priority_screen",
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("tasks_screen") { TasksScreen(navController, taskViewModel) }

@@ -42,6 +42,8 @@ import edu.fullsail.anchor.ui.theme.AnchorTheme
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
+import edu.fullsail.anchor.engagement.badges.BadgesViewModel
+import edu.fullsail.anchor.engagement.badges.BadgeRuleEngine
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -77,6 +79,13 @@ fun AppNavigation() {
     val taskViewModel: TaskViewModel = viewModel()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    /*
+    Shared BadgesViewModel instance so task completion can trigger badge evaluation
+    Note (Gamification): Keep this BadgesViewModel created at the navigation level.
+    Task completion uses this shared instance to eval/update badges.
+    Removing / Moving this line will break tasks -> badge progress / unlocks.
+    */
+    val badgesViewModel: BadgesViewModel = viewModel()
 
     Scaffold(
         topBar = {
@@ -117,9 +126,9 @@ fun AppNavigation() {
             startDestination = "priority_screen",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("tasks_screen") { TasksScreen(navController, taskViewModel) }
+            composable("tasks_screen") { TasksScreen(navController, taskViewModel, badgesViewModel) }
             composable("priority_screen") { PriorityScreen(navController, taskViewModel) }
-            composable("badges_screen") { edu.fullsail.anchor.engagement.badges.BadgesScreen() }
+            composable("badges_screen") { edu.fullsail.anchor.engagement.badges.BadgesScreen(badgesViewModel) }
             composable(
                 route = "create_task_screen?taskId={taskId}",
                 arguments = listOf(navArgument("taskId") {
@@ -142,7 +151,8 @@ fun AppNavigation() {
 @Composable
 fun TasksScreen(
     navController: NavController,
-    taskViewModel: TaskViewModel
+    taskViewModel: TaskViewModel,
+    badgesViewModel: BadgesViewModel
 ) {
     val tasks by taskViewModel.tasks.collectAsState()
     val groupedTasks = tasks.groupBy { it.timeframe }
@@ -175,7 +185,20 @@ fun TasksScreen(
                         task = task,
                         onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
                         onDelete = { taskViewModel.deleteTask(task.id) },
-                        onToggleComplete = { taskViewModel.toggleTaskCompletion(task.id) }
+                        /*
+                        BADGE SYSTEM BRIDGE:
+                        After a task is completed, we rebuild UserEngagementStats and re-evaluate badges.
+                        This keeps badge progress/ unlocks in sync with real task behavior.
+                        Do not remove without updating the badge evaluation pipeline.
+                         */
+                        onToggleComplete = { taskViewModel.toggleTaskCompletion(task.id)
+                        val stats = taskViewModel.buildEngagementStats()
+                            val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
+                                stats = stats,
+                                existing = badgesViewModel.badges
+                            )
+                            badgesViewModel.saveBadges(updatedBadges)
+                        }
                     )
                 }
             }

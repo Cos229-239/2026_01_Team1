@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import java.util.UUID
+import edu.fullsail.anchor.engagement.UserEngagementStats
 
 class TaskViewModel : ViewModel() {
 
@@ -24,6 +25,20 @@ class TaskViewModel : ViewModel() {
             Task(title = "Update documentation", dueDateMillis = null, priority = "Low", timeframe = "Monthly"),
             Task(title = "Research new libraries", dueDateMillis = System.currentTimeMillis() + 1209600000, priority = "Low", timeframe = "Yearly"),
             Task(title = "Refactor login screen", dueDateMillis = null, priority = "Low", timeframe = "Monthly")
+        )
+    }
+    /*
+    Required Badge System: Builds UserEngagementStats from current tasks
+    Used by the badge evaluation pipeline when tasks are completed.
+    Do not remove or change without updating badge logic.
+     */
+    fun buildEngagementStats(): UserEngagementStats {
+        val completedTotal = _tasks.value.count { it.isCompleted }
+        return UserEngagementStats(
+            completedTasksTotal = completedTotal,
+            scheduledToday = 0,
+            completedToday = 0,
+            streakDays = 0
         )
     }
 

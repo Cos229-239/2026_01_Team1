@@ -1,6 +1,7 @@
 package edu.fullsail.anchor.engagement.badges
 
 import edu.fullsail.anchor.R
+import edu.fullsail.anchor.engagement.UserEngagementStats
 
 object BadgeRuleEngine {
     /*
@@ -112,13 +113,4 @@ object BadgeIds {
     const val EXCEPTIONAL_WEEK = "exceptional_week"
     const val TEN_IN_A_DAY = "ten_in_a_day"
 }
-/*
-Stats that drive badge progress
-NEED TO ATTACH REAL TASK SYSTEM
- */
-data class UserEngagementStats(
-    val completedTasksTotal: Int = 0,
-    val scheduledToday: Int = 0,
-    val completedToday: Int = 0,
-    val streakDays: Int = 0
-)
+

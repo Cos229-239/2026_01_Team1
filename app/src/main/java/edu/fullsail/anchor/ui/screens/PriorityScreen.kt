@@ -25,11 +25,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import edu.fullsail.anchor.Task
 import edu.fullsail.anchor.TaskViewModel
+import edu.fullsail.anchor.engagement.badges.BadgeRuleEngine
+import edu.fullsail.anchor.engagement.badges.BadgesViewModel
 
 @Composable
 fun PriorityScreen(
     navController: NavController,
-    viewModel: TaskViewModel = viewModel()
+    viewModel: TaskViewModel = viewModel(),
+    badgesViewModel: BadgesViewModel
 ) {
     val allTasks by viewModel.tasks.collectAsState()
 
@@ -55,7 +58,13 @@ fun PriorityScreen(
         items(high.take(3), key = { task: Task -> task.id }) { task ->
             PriorityTaskRow(
                 task = task,
-                onToggle = { viewModel.toggleTaskCompletion(task.id) },
+                onToggle = { viewModel.toggleTaskCompletion(task.id)
+                    val stats = viewModel.buildEngagementStats()
+                    val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
+                        stats = stats,
+                        existing = badgesViewModel.badges
+                    )
+                    badgesViewModel.saveBadges(updatedBadges)},
                 onDelete = { viewModel.deleteTask(task.id) },
                 onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
                 onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) }
@@ -68,7 +77,13 @@ fun PriorityScreen(
             items(medium, key = { task: Task -> task.id }) { task ->
                 PriorityTaskRow(
                     task = task,
-                    onToggle = { viewModel.toggleTaskCompletion(task.id) },
+                    onToggle = { viewModel.toggleTaskCompletion(task.id)
+                        val stats = viewModel.buildEngagementStats()
+                        val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
+                            stats = stats,
+                            existing = badgesViewModel.badges
+                        )
+                        badgesViewModel.saveBadges(updatedBadges)},
                     onDelete = { viewModel.deleteTask(task.id) },
                     onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
                     onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) }
@@ -82,7 +97,13 @@ fun PriorityScreen(
             items(low, key = { task: Task -> task.id }) { task ->
                 PriorityTaskRow(
                     task = task,
-                    onToggle = { viewModel.toggleTaskCompletion(task.id) },
+                    onToggle = { viewModel.toggleTaskCompletion(task.id)
+                        val stats = viewModel.buildEngagementStats()
+                        val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
+                            stats = stats,
+                            existing = badgesViewModel.badges
+                        )
+                        badgesViewModel.saveBadges(updatedBadges)},
                     onDelete = { viewModel.deleteTask(task.id) },
                     onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
                     onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) }

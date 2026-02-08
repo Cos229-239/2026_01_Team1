@@ -127,7 +127,7 @@ fun AppNavigation() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("tasks_screen") { TasksScreen(navController, taskViewModel, badgesViewModel) }
-            composable("priority_screen") { PriorityScreen(navController, taskViewModel) }
+            composable("priority_screen") { PriorityScreen(navController, taskViewModel, badgesViewModel) }
             composable("badges_screen") { edu.fullsail.anchor.engagement.badges.BadgesScreen(badgesViewModel) }
             composable(
                 route = "create_task_screen?taskId={taskId}",

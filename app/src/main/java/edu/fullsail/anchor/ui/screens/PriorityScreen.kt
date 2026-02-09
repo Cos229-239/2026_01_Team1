@@ -27,6 +27,12 @@ import edu.fullsail.anchor.Task
 import edu.fullsail.anchor.TaskViewModel
 import edu.fullsail.anchor.engagement.badges.BadgeRuleEngine
 import edu.fullsail.anchor.engagement.badges.BadgesViewModel
+import edu.fullsail.anchor.engagement.badges.ConfettiOverlay
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import edu.fullsail.anchor.engagement.badges.Explosion
+import androidx.compose.ui.geometry.Offset
 
 @Composable
 fun PriorityScreen(
@@ -35,6 +41,10 @@ fun PriorityScreen(
     badgesViewModel: BadgesViewModel
 ) {
     val allTasks by viewModel.tasks.collectAsState()
+
+    // adding confetti value
+    val explosions = remember { mutableStateListOf<Explosion>() }
+
 
     // Memoize the filtered lists to avoid re-calculation on every recomposition.
     val (high, medium, low) = remember(allTasks) {
@@ -45,71 +55,93 @@ fun PriorityScreen(
         Triple(high, medium, low)
     }
 
-    LazyColumn(
-        contentPadding = PaddingValues(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // --- FOCUS Section (High Priority) ---
-        item {
-            val focusCount = high.size
-            val additionalCount = (focusCount - 3).coerceAtLeast(0)
-            PrioritySectionHeader("⭐ Focus", additionalCount)
-        }
-        items(high.take(3), key = { task: Task -> task.id }) { task ->
-            PriorityTaskRow(
-                task = task,
-                onToggle = { viewModel.toggleTaskCompletion(task.id)
-                    val stats = viewModel.buildEngagementStats()
-                    val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
-                        stats = stats,
-                        existing = badgesViewModel.badges
+    // adding confetti changes to handle completion logic
+    val onTaskComplete: (String, Offset) -> Unit = { taskId, position ->
+        // trigger logic
+        viewModel.toggleTaskCompletion(taskId)
+
+        // add explosion at a specific position
+        explosions.add(Explosion(id = System.nanoTime(), position = position))
+
+        // badges logic
+        val stats = viewModel.buildEngagementStats()
+        val (updateBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
+            stats = stats,
+            existing = badgesViewModel.badges
+        )
+        badgesViewModel.saveBadges(updateBadges)
+    }
+
+    // confetti wrapping it all in a box
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            contentPadding = PaddingValues(vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // --- FOCUS Section (High Priority) ---
+            item {
+                val focusCount = high.size
+                val additionalCount = (focusCount - 3).coerceAtLeast(0)
+                PrioritySectionHeader("⭐ Focus", additionalCount)
+            }
+            items(high.take(3), key = { task: Task -> task.id }) { task ->
+                PriorityTaskRow(
+                    task = task,
+                    onToggle = { pos -> onTaskComplete(task.id, pos) },
+                    onDelete = { viewModel.deleteTask(task.id) },
+                    onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
+                    onPriorityChange = { newPriority ->
+                        viewModel.updatePriority(
+                            task.id,
+                            newPriority
+                        )
+                    }
+                )
+            }
+
+            // --- ACTIVE Section (Medium Priority) ---
+            if (medium.isNotEmpty()) {
+                item { PrioritySectionHeader("☑ Active") }
+                items(medium, key = { task: Task -> task.id }) { task ->
+                    PriorityTaskRow(
+                        task = task,
+                        onToggle = { pos -> onTaskComplete(task.id, pos) },
+                        onDelete = { viewModel.deleteTask(task.id) },
+                        onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
+                        onPriorityChange = { newPriority ->
+                            viewModel.updatePriority(
+                                task.id,
+                                newPriority
+                            )
+                        }
                     )
-                    badgesViewModel.saveBadges(updatedBadges)},
-                onDelete = { viewModel.deleteTask(task.id) },
-                onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) }
-            )
-        }
+                }
+            }
 
-        // --- ACTIVE Section (Medium Priority) ---
-        if (medium.isNotEmpty()) {
-            item { PrioritySectionHeader("☑ Active") }
-            items(medium, key = { task: Task -> task.id }) { task ->
-                PriorityTaskRow(
-                    task = task,
-                    onToggle = { viewModel.toggleTaskCompletion(task.id)
-                        val stats = viewModel.buildEngagementStats()
-                        val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
-                            stats = stats,
-                            existing = badgesViewModel.badges
-                        )
-                        badgesViewModel.saveBadges(updatedBadges)},
-                    onDelete = { viewModel.deleteTask(task.id) },
-                    onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                    onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) }
-                )
+            // --- LATER/OPTIONAL Section (Low Priority) ---
+            if (low.isNotEmpty()) {
+                item { PrioritySectionHeader("⏳ Later/Optional") }
+                items(low, key = { task: Task -> task.id }) { task ->
+                    PriorityTaskRow(
+                        task = task,
+                        onToggle = { pos -> onTaskComplete(task.id, pos) },
+                        onDelete = { viewModel.deleteTask(task.id) },
+                        onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
+                        onPriorityChange = { newPriority ->
+                            viewModel.updatePriority(
+                                task.id,
+                                newPriority
+                            )
+                        }
+                    )
+                }
             }
         }
-
-        // --- LATER/OPTIONAL Section (Low Priority) ---
-        if (low.isNotEmpty()) {
-            item { PrioritySectionHeader("⏳ Later/Optional") }
-            items(low, key = { task: Task -> task.id }) { task ->
-                PriorityTaskRow(
-                    task = task,
-                    onToggle = { viewModel.toggleTaskCompletion(task.id)
-                        val stats = viewModel.buildEngagementStats()
-                        val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
-                            stats = stats,
-                            existing = badgesViewModel.badges
-                        )
-                        badgesViewModel.saveBadges(updatedBadges)},
-                    onDelete = { viewModel.deleteTask(task.id) },
-                    onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                    onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) }
-                )
-            }
-        }
+        // adding confetti overlay
+        ConfettiOverlay(
+            explosions = explosions,
+            onBurstFinished = { id -> explosions.removeAll { it.id == id } }
+        )
     }
 }
 
@@ -136,7 +168,7 @@ private fun PrioritySectionHeader(title: String, additionalCount: Int = 0) {
 @Composable
 private fun PriorityTaskRow(
     task: Task,
-    onToggle: () -> Unit,
+    onToggle: (Offset) -> Unit,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
     onPriorityChange: (String) -> Unit
@@ -145,6 +177,9 @@ private fun PriorityTaskRow(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
 
+    // capture position for confetti
+    var checkboxPosition by remember { mutableStateOf(Offset.Zero) }
+
     Card(modifier = Modifier.padding(horizontal = 16.dp)) {
         Row(
             modifier = Modifier
@@ -152,13 +187,29 @@ private fun PriorityTaskRow(
                 .padding(start = 8.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(checked = task.isCompleted, onCheckedChange = { onToggle() })
+            Checkbox(
+                checked = task.isCompleted,
+                onCheckedChange = { onToggle(checkboxPosition) }, // sending position
+                modifier = Modifier.onGloballyPositioned { coordinates ->
+                    // calculate the center of the checkbox
+                    val position = coordinates.positionInWindow()
+                    val size = coordinates.size
+                    checkboxPosition = Offset(
+                        x = position.x + size.width / 2f,
+                        y = position.y + size.height / 2f
+                    )
+                }
+            )
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(vertical = 12.dp, horizontal = 8.dp)
             ) {
-                Text(text = task.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    text = task.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
                 if (task.dueDate.isNotBlank()) {
                     Spacer(Modifier.height(4.dp))
                     Text(text = task.dueDate, style = MaterialTheme.typography.bodySmall)

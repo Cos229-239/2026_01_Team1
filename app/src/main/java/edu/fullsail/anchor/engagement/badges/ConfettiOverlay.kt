@@ -1,25 +1,20 @@
 package edu.fullsail.anchor.engagement.badges
 
-import android.content.IntentSender
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.FabPosition
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.modifier.modifierLocalOf
 import kotlin.random.Random
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Box
-
 
 
 // Going to try and make it so you can click over and over
@@ -50,6 +45,7 @@ fun ConfettiOverlay(
         }
     }
 }
+
 @Composable
 private fun ConfettiBurst(
     origin: Offset,
@@ -72,29 +68,29 @@ private fun ConfettiBurst(
 
 
     LaunchedEffect(Unit) {
-            // 1) make particles random
-            particles = List(50){
-                val angle = Random.nextFloat() * 360f
-                val speed = Random.nextFloat() * 20f + 10f
-                Particle(
-                    color = colors.random(),
-                    velocityX = (cos(Math.toRadians(angle.toDouble())) * speed).toFloat(),
-                    velocityY = (sin(Math.toRadians(angle.toDouble())) * speed).toFloat(),
-                    radius = Random.nextFloat() * 8f + 4f,
-                    initialAngle = Random.nextFloat() * 360f
-                )
-            }
-            // 2) run the animation
-            animatedProgress.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 1200, easing = LinearEasing)
+        // 1) make particles random
+        particles = List(50) {
+            val angle = Random.nextFloat() * 360f
+            val speed = Random.nextFloat() * 20f + 10f
+            Particle(
+                color = colors.random(),
+                velocityX = (cos(Math.toRadians(angle.toDouble())) * speed).toFloat(),
+                velocityY = (sin(Math.toRadians(angle.toDouble())) * speed).toFloat(),
+                radius = Random.nextFloat() * 8f + 4f,
+                initialAngle = Random.nextFloat() * 360f
             )
+        }
+        // 2) run the animation
+        animatedProgress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 1200, easing = LinearEasing)
+        )
 
-            // 3) cleanup after
-            onFinished()
+        // 3) cleanup after
+        onFinished()
 
     }
-    if (particles.isNotEmpty()){
+    if (particles.isNotEmpty()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val progress = animatedProgress.value
 
@@ -115,7 +111,7 @@ private fun ConfettiBurst(
                         degrees = particle.initialAngle + (progress * 360),
                         pivot = Offset(currentX, currentY)
                     )
-                }){
+                }) {
                     drawCircle(
                         color = particle.color.copy(alpha = alpha),
                         radius = particle.radius,

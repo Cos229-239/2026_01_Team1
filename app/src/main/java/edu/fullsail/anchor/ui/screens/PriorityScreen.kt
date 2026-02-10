@@ -59,12 +59,14 @@ fun PriorityScreen(
     }
 
     // adding confetti changes to handle completion logic
-    val onTaskComplete: (String, Offset) -> Unit = { taskId, position ->
+    val onTaskComplete: (String, Offset) -> Unit = { taskId, rawPosition ->
         viewModel.toggleTaskCompletion(taskId) // for the confetti logic
+
+        val adjustedPosition = rawPosition - overlayOffset
 
 
         // add explosion at a specific position
-        explosions.add(Explosion(id = System.nanoTime(), position = position))
+        explosions.add(Explosion(id = System.nanoTime(), position = adjustedPosition))
 
         // badges logic
         val stats = viewModel.buildEngagementStats()
@@ -76,7 +78,13 @@ fun PriorityScreen(
     }
 
     // confetti wrapping it all in a box
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { coordinates ->
+                overlayOffset = coordinates.positionInWindow()
+            }
+    ) {
         LazyColumn(
             contentPadding = PaddingValues(vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)

@@ -45,6 +45,9 @@ fun PriorityScreen(
     // adding confetti value
     val explosions = remember { mutableStateListOf<Explosion>() }
 
+    // creating offset for confetti to go to check box
+    var overlayOffset by remember { mutableStateOf(Offset.Zero) }
+
 
     // Memoize the filtered lists to avoid re-calculation on every recomposition.
     val (high, medium, low) = remember(allTasks) {
@@ -57,8 +60,8 @@ fun PriorityScreen(
 
     // adding confetti changes to handle completion logic
     val onTaskComplete: (String, Offset) -> Unit = { taskId, position ->
-        // trigger logic
-        viewModel.toggleTaskCompletion(taskId)
+        viewModel.toggleTaskCompletion(taskId) // for the confetti logic
+
 
         // add explosion at a specific position
         explosions.add(Explosion(id = System.nanoTime(), position = position))

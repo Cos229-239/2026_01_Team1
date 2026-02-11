@@ -44,6 +44,12 @@ import java.text.SimpleDateFormat
 import java.util.*
 import edu.fullsail.anchor.engagement.badges.BadgesViewModel
 import edu.fullsail.anchor.engagement.badges.BadgeRuleEngine
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.graphicsLayer
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -157,6 +163,21 @@ fun TasksScreen(
     val tasks by taskViewModel.tasks.collectAsState()
     val groupedTasks = tasks.groupBy { it.timeframe }
 
+    // Track expanded state for each timeframe section
+    // NOTE: Changed from rememberSaveable to remember to fix crash (The app would crash after pressing task list)
+    // Using remember instead of rememberSaveable because mutableStateMapOf is not directly serializable
+    val expandedSections = remember { mutableStateMapOf<String, Boolean>() }
+
+    // Initialize all sections as expanded by default
+    // NOTE: Added for collapsible sections feature - ensures all sections start expanded
+    LaunchedEffect(groupedTasks.keys) {
+        groupedTasks.keys.forEach { timeframe ->
+            if (!expandedSections.containsKey(timeframe)) {
+                expandedSections[timeframe] = true
+            }
+        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -173,33 +194,43 @@ fun TasksScreen(
             }
         } else {
             groupedTasks.forEach { (timeframe, tasksInGroup) ->
-                item {
-                    Text(
-                        text = timeframe,
-                        style = MaterialTheme.typography.titleLarge,
+                // Replaced Text header with CollapsibleHeader component
+                item(key = "header_$timeframe") {
+                    CollapsibleHeader(
+                        title = timeframe,
+                        isExpanded = expandedSections[timeframe] ?: true,
+                        onToggle = {
+                            expandedSections[timeframe] = !(expandedSections[timeframe] ?: true)
+                        },
                         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
                 }
-                items(tasksInGroup, key = { it.id }) { task ->
-                    TaskItem(
-                        task = task,
-                        onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                        onDelete = { taskViewModel.deleteTask(task.id) },
-                        /*
-                        BADGE SYSTEM BRIDGE:
-                        After a task is completed, we rebuild UserEngagementStats and re-evaluate badges.
-                        This keeps badge progress/ unlocks in sync with real task behavior.
-                        Do not remove without updating the badge evaluation pipeline.
-                         */
-                        onToggleComplete = { taskViewModel.toggleTaskCompletion(task.id)
-                        val stats = taskViewModel.buildEngagementStats()
-                            val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
-                                stats = stats,
-                                existing = badgesViewModel.badges
-                            )
-                            badgesViewModel.saveBadges(updatedBadges)
-                        }
-                    )
+
+                // Only render task items if section is expanded
+                // NOTE: This conditional prevents rendering items in LazyColumn when collapsed
+                if (expandedSections[timeframe] == true) {
+                    items(tasksInGroup, key = { it.id }) { task ->
+                        TaskItem(
+                            task = task,
+                            onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
+                            onDelete = { taskViewModel.deleteTask(task.id) },
+                            /*
+                            BADGE SYSTEM BRIDGE:
+                            After a task is completed, we rebuild UserEngagementStats and re-evaluate badges.
+                            This keeps badge progress/ unlocks in sync with real task behavior.
+                            Do not remove without updating the badge evaluation pipeline.
+                             */
+                            onToggleComplete = {
+                                taskViewModel.toggleTaskCompletion(task.id)
+                                val stats = taskViewModel.buildEngagementStats()
+                                val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
+                                    stats = stats,
+                                    existing = badgesViewModel.badges
+                                )
+                                badgesViewModel.saveBadges(updatedBadges)
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -646,6 +677,49 @@ fun BottomNavigationBar(navController: NavController) {
                     launchSingleTop = true
                 }
             }
+        )
+    }
+}
+
+@Composable
+fun CollapsibleHeader(
+    title: String,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    trailingText: String? = null
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        label = "chevron rotation"
+    )
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.weight(1f)
+        )
+
+        if (trailingText != null) {
+            Text(
+                text = trailingText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+        }
+
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowDown,
+            contentDescription = if (isExpanded) "Collapse" else "Expand",
+            modifier = Modifier.graphicsLayer { rotationZ = rotation }
         )
     }
 }

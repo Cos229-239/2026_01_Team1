@@ -15,9 +15,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -58,6 +62,12 @@ fun PriorityScreen(
         Triple(high, medium, low)
     }
 
+    // Track expanded state for each section
+    // NOTE: Using remember instead of rememberSaveable to prevent serialization crashes
+    var isFocusExpanded by remember { mutableStateOf(true) }
+    var isActiveExpanded by remember { mutableStateOf(true) }
+    var isLaterExpanded by remember { mutableStateOf(true) }
+
     // adding confetti changes to handle completion logic
     val onTaskComplete: (String, Offset) -> Unit = { taskId, rawPosition ->
         viewModel.toggleTaskCompletion(taskId) // for the confetti logic
@@ -90,30 +100,19 @@ fun PriorityScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // --- FOCUS Section (High Priority) ---
-            item {
+            item(key = "header_focus") {
                 val focusCount = high.size
                 val additionalCount = (focusCount - 3).coerceAtLeast(0)
-                PrioritySectionHeader("⭐ Focus", additionalCount)
-            }
-            items(high.take(3), key = { task: Task -> task.id }) { task ->
-                PriorityTaskRow(
-                    task = task,
-                    onToggle = { pos -> onTaskComplete(task.id, pos) },
-                    onDelete = { viewModel.deleteTask(task.id) },
-                    onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                    onPriorityChange = { newPriority ->
-                        viewModel.updatePriority(
-                            task.id,
-                            newPriority
-                        )
-                    }
+                PrioritySectionHeader(
+                    title = "⭐ Focus",
+                    additionalCount = additionalCount,
+                    isExpanded = isFocusExpanded,
+                    onToggle = { isFocusExpanded = !isFocusExpanded }
                 )
             }
 
-            // --- ACTIVE Section (Medium Priority) ---
-            if (medium.isNotEmpty()) {
-                item { PrioritySectionHeader("☑ Active") }
-                items(medium, key = { task: Task -> task.id }) { task ->
+            if (isFocusExpanded) {
+                items(high.take(3), key = { task: Task -> task.id }) { task ->
                     PriorityTaskRow(
                         task = task,
                         onToggle = { pos -> onTaskComplete(task.id, pos) },
@@ -129,22 +128,59 @@ fun PriorityScreen(
                 }
             }
 
+            // --- ACTIVE Section (Medium Priority) ---
+            if (medium.isNotEmpty()) {
+                item(key = "header_active") {
+                    PrioritySectionHeader(
+                        title = "☑ Active",
+                        isExpanded = isActiveExpanded,
+                        onToggle = { isActiveExpanded = !isActiveExpanded }
+                    )
+                }
+
+                if (isActiveExpanded) {
+                    items(medium, key = { task: Task -> task.id }) { task ->
+                        PriorityTaskRow(
+                            task = task,
+                            onToggle = { pos -> onTaskComplete(task.id, pos) },
+                            onDelete = { viewModel.deleteTask(task.id) },
+                            onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
+                            onPriorityChange = { newPriority ->
+                                viewModel.updatePriority(
+                                    task.id,
+                                    newPriority
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
             // --- LATER/OPTIONAL Section (Low Priority) ---
             if (low.isNotEmpty()) {
-                item { PrioritySectionHeader("⏳ Later/Optional") }
-                items(low, key = { task: Task -> task.id }) { task ->
-                    PriorityTaskRow(
-                        task = task,
-                        onToggle = { pos -> onTaskComplete(task.id, pos) },
-                        onDelete = { viewModel.deleteTask(task.id) },
-                        onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                        onPriorityChange = { newPriority ->
-                            viewModel.updatePriority(
-                                task.id,
-                                newPriority
-                            )
-                        }
+                item(key = "header_later") {
+                    PrioritySectionHeader(
+                        title = "⏳ Later/Optional",
+                        isExpanded = isLaterExpanded,
+                        onToggle = { isLaterExpanded = !isLaterExpanded }
                     )
+                }
+
+                if (isLaterExpanded) {
+                    items(low, key = { task: Task -> task.id }) { task ->
+                        PriorityTaskRow(
+                            task = task,
+                            onToggle = { pos -> onTaskComplete(task.id, pos) },
+                            onDelete = { viewModel.deleteTask(task.id) },
+                            onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
+                            onPriorityChange = { newPriority ->
+                                viewModel.updatePriority(
+                                    task.id,
+                                    newPriority
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -157,22 +193,46 @@ fun PriorityScreen(
 }
 
 @Composable
-private fun PrioritySectionHeader(title: String, additionalCount: Int = 0) {
+private fun PrioritySectionHeader(
+    title: String,
+    additionalCount: Int = 0,
+    isExpanded: Boolean,
+    onToggle: () -> Unit
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        label = "chevron rotation"
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = title, style = MaterialTheme.typography.titleLarge)
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge
+        )
+
         if (additionalCount > 0) {
             Spacer(Modifier.weight(1f))
             Text(
                 text = "+$additionalCount additional tasks",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 8.dp)
             )
+        } else {
+            Spacer(Modifier.weight(1f))
         }
+
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowDown,
+            contentDescription = if (isExpanded) "Collapse" else "Expand",
+            modifier = Modifier.graphicsLayer { rotationZ = rotation }
+        )
     }
 }
 

@@ -15,15 +15,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -32,6 +27,12 @@ import edu.fullsail.anchor.Task
 import edu.fullsail.anchor.TaskViewModel
 import edu.fullsail.anchor.engagement.badges.BadgeRuleEngine
 import edu.fullsail.anchor.engagement.badges.BadgesViewModel
+import edu.fullsail.anchor.engagement.badges.ConfettiOverlay
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import edu.fullsail.anchor.engagement.badges.Explosion
+import androidx.compose.ui.geometry.Offset
 
 @Composable
 fun PriorityScreen(
@@ -40,6 +41,13 @@ fun PriorityScreen(
     badgesViewModel: BadgesViewModel
 ) {
     val allTasks by viewModel.tasks.collectAsState()
+
+    // adding confetti value
+    val explosions = remember { mutableStateListOf<Explosion>() }
+
+    // creating offset for confetti to go to check box
+    var overlayOffset by remember { mutableStateOf(Offset.Zero) }
+
 
     // Memoize the filtered lists to avoid re-calculation on every recomposition.
     val (high, medium, low) = remember(allTasks) {
@@ -50,159 +58,128 @@ fun PriorityScreen(
         Triple(high, medium, low)
     }
 
-    // Track expanded state for each section
-    var isFocusExpanded by rememberSaveable { mutableStateOf(true) }
-    var isActiveExpanded by rememberSaveable { mutableStateOf(true) }
-    var isLaterExpanded by rememberSaveable { mutableStateOf(true) }
+    // adding confetti changes to handle completion logic
+    val onTaskComplete: (String, Offset) -> Unit = { taskId, rawPosition ->
+        viewModel.toggleTaskCompletion(taskId) // for the confetti logic
 
-    LazyColumn(
-        contentPadding = PaddingValues(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        val adjustedPosition = rawPosition - overlayOffset
+
+
+        // add explosion at a specific position
+        explosions.add(Explosion(id = System.nanoTime(), position = adjustedPosition))
+
+        // badges logic
+        val stats = viewModel.buildEngagementStats()
+        val (updateBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
+            stats = stats,
+            existing = badgesViewModel.badges
+        )
+        badgesViewModel.saveBadges(updateBadges)
+    }
+
+    // confetti wrapping it all in a box
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { coordinates ->
+                overlayOffset = coordinates.positionInWindow()
+            }
     ) {
-        // --- FOCUS Section (High Priority) ---
-        item(key = "header_focus") {
-            val focusCount = high.size
-            val additionalCount = (focusCount - 3).coerceAtLeast(0)
-            PrioritySectionHeader(
-                title = "⭐ Focus",
-                additionalCount = additionalCount,
-                isExpanded = isFocusExpanded,
-                onToggle = { isFocusExpanded = !isFocusExpanded }
-            )
-        }
-
-        if (isFocusExpanded) {
+        LazyColumn(
+            contentPadding = PaddingValues(vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // --- FOCUS Section (High Priority) ---
+            item {
+                val focusCount = high.size
+                val additionalCount = (focusCount - 3).coerceAtLeast(0)
+                PrioritySectionHeader("⭐ Focus", additionalCount)
+            }
             items(high.take(3), key = { task: Task -> task.id }) { task ->
                 PriorityTaskRow(
                     task = task,
-                    onToggle = {
-                        viewModel.toggleTaskCompletion(task.id)
-                        val stats = viewModel.buildEngagementStats()
-                        val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
-                            stats = stats,
-                            existing = badgesViewModel.badges
-                        )
-                        badgesViewModel.saveBadges(updatedBadges)
-                    },
+                    onToggle = { pos -> onTaskComplete(task.id, pos) },
                     onDelete = { viewModel.deleteTask(task.id) },
                     onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                    onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) }
-                )
-            }
-        }
-
-        // --- ACTIVE Section (Medium Priority) ---
-        if (medium.isNotEmpty()) {
-            item(key = "header_active") {
-                PrioritySectionHeader(
-                    title = "☑ Active",
-                    isExpanded = isActiveExpanded,
-                    onToggle = { isActiveExpanded = !isActiveExpanded }
+                    onPriorityChange = { newPriority ->
+                        viewModel.updatePriority(
+                            task.id,
+                            newPriority
+                        )
+                    }
                 )
             }
 
-            if (isActiveExpanded) {
+            // --- ACTIVE Section (Medium Priority) ---
+            if (medium.isNotEmpty()) {
+                item { PrioritySectionHeader("☑ Active") }
                 items(medium, key = { task: Task -> task.id }) { task ->
                     PriorityTaskRow(
                         task = task,
-                        onToggle = {
-                            viewModel.toggleTaskCompletion(task.id)
-                            val stats = viewModel.buildEngagementStats()
-                            val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
-                                stats = stats,
-                                existing = badgesViewModel.badges
-                            )
-                            badgesViewModel.saveBadges(updatedBadges)
-                        },
+                        onToggle = { pos -> onTaskComplete(task.id, pos) },
                         onDelete = { viewModel.deleteTask(task.id) },
                         onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                        onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) }
+                        onPriorityChange = { newPriority ->
+                            viewModel.updatePriority(
+                                task.id,
+                                newPriority
+                            )
+                        }
                     )
                 }
             }
-        }
 
-        // --- LATER/OPTIONAL Section (Low Priority) ---
-        if (low.isNotEmpty()) {
-            item(key = "header_later") {
-                PrioritySectionHeader(
-                    title = "⏳ Later/Optional",
-                    isExpanded = isLaterExpanded,
-                    onToggle = { isLaterExpanded = !isLaterExpanded }
-                )
-            }
-
-            if (isLaterExpanded) {
+            // --- LATER/OPTIONAL Section (Low Priority) ---
+            if (low.isNotEmpty()) {
+                item { PrioritySectionHeader("⏳ Later/Optional") }
                 items(low, key = { task: Task -> task.id }) { task ->
                     PriorityTaskRow(
                         task = task,
-                        onToggle = {
-                            viewModel.toggleTaskCompletion(task.id)
-                            val stats = viewModel.buildEngagementStats()
-                            val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
-                                stats = stats,
-                                existing = badgesViewModel.badges
-                            )
-                            badgesViewModel.saveBadges(updatedBadges)
-                        },
+                        onToggle = { pos -> onTaskComplete(task.id, pos) },
                         onDelete = { viewModel.deleteTask(task.id) },
                         onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                        onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) }
+                        onPriorityChange = { newPriority ->
+                            viewModel.updatePriority(
+                                task.id,
+                                newPriority
+                            )
+                        }
                     )
                 }
             }
         }
+        // adding confetti overlay
+        ConfettiOverlay(
+            explosions = explosions,
+            onBurstFinished = { id -> explosions.removeAll { it.id == id } }
+        )
     }
 }
 
 @Composable
-private fun PrioritySectionHeader(
-    title: String,
-    additionalCount: Int = 0,
-    isExpanded: Boolean,
-    onToggle: () -> Unit
-) {
-    val rotation by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
-        label = "chevron rotation"
-    )
-
+private fun PrioritySectionHeader(title: String, additionalCount: Int = 0) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onToggle)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge
-        )
-
+        Text(text = title, style = MaterialTheme.typography.titleLarge)
         if (additionalCount > 0) {
             Spacer(Modifier.weight(1f))
             Text(
                 text = "+$additionalCount additional tasks",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = 8.dp)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        } else {
-            Spacer(Modifier.weight(1f))
         }
-
-        Icon(
-            imageVector = Icons.Default.KeyboardArrowDown,
-            contentDescription = if (isExpanded) "Collapse" else "Expand",
-            modifier = Modifier.graphicsLayer { rotationZ = rotation }
-        )
     }
 }
 
 @Composable
 private fun PriorityTaskRow(
     task: Task,
-    onToggle: () -> Unit,
+    onToggle: (Offset) -> Unit,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
     onPriorityChange: (String) -> Unit
@@ -211,6 +188,9 @@ private fun PriorityTaskRow(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
 
+    // capture position for confetti
+    var checkboxPosition by remember { mutableStateOf(Offset.Zero) }
+
     Card(modifier = Modifier.padding(horizontal = 16.dp)) {
         Row(
             modifier = Modifier
@@ -218,13 +198,29 @@ private fun PriorityTaskRow(
                 .padding(start = 8.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(checked = task.isCompleted, onCheckedChange = { onToggle() })
+            Checkbox(
+                checked = task.isCompleted,
+                onCheckedChange = { onToggle(checkboxPosition) }, // sending position
+                modifier = Modifier.onGloballyPositioned { coordinates ->
+                    // calculate the center of the checkbox
+                    val position = coordinates.positionInWindow()
+                    val size = coordinates.size
+                    checkboxPosition = Offset(
+                        x = position.x + size.width / 2f,
+                        y = position.y + size.height / 2f
+                    )
+                }
+            )
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(vertical = 12.dp, horizontal = 8.dp)
             ) {
-                Text(text = task.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    text = task.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
                 if (task.dueDate.isNotBlank()) {
                     Spacer(Modifier.height(4.dp))
                     Text(text = task.dueDate, style = MaterialTheme.typography.bodySmall)

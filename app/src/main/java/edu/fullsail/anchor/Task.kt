@@ -13,7 +13,9 @@ data class Task(
     val dueDateMillis: Long?,
     val priority: String,
     val timeframe: String,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    //Timestamp used for streak + daily badge calculation (do not remove without updating badge logic)
+    val completedAtMillis: Long? = null
 ) {
     val dueDate: String
         get() {

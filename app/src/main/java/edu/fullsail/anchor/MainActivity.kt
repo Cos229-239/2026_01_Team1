@@ -186,14 +186,16 @@ fun TasksScreen(
                         onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
                         onDelete = { taskViewModel.deleteTask(task.id) },
                         /*
-                        BADGE SYSTEM BRIDGE:
-                        After a task is completed, we rebuild UserEngagementStats and re-evaluate badges.
-                        This keeps badge progress/ unlocks in sync with real task behavior.
-                        Do not remove without updating the badge evaluation pipeline.
+                        BADGE SYSTEM HOOK:
+                        When a task is completed, we rebuild UserEngagementStats and re-evaluate badges.
+                        This is the connection between task actions and badge progress.
+                        Do not remove unless the badge pipeline is refactored elsewhere.
                          */
-                        onToggleComplete = { taskViewModel.toggleTaskCompletion(task.id)
-                        val stats = taskViewModel.buildEngagementStats()
-                            val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
+                        onToggleComplete = {
+                            taskViewModel.toggleTaskCompletion(task.id)
+
+                            val stats = taskViewModel.buildEngagementStats()
+                            val (updatedBadges, _) = BadgeRuleEngine.evaluate(
                                 stats = stats,
                                 existing = badgesViewModel.badges
                             )

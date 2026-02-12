@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -38,6 +39,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import edu.fullsail.anchor.ui.screens.PriorityScreen
+import edu.fullsail.anchor.ui.screens.SettingsScreen
 import edu.fullsail.anchor.ui.theme.AnchorTheme
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -51,12 +53,28 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val isDarkTheme = isSystemInDarkTheme()
+            // Hoist settingsViewModel here so theme reacts to changes immediately.
+            // The same instance is passed into AppNavigation to avoid a duplicate ViewModel.
+            val settingsViewModel: SettingsViewModel = viewModel()
+            val settings by settingsViewModel.settings.collectAsState()
+
+            // Resolve dark theme from user setting.
+            // branch here is to also swap color schemes.
+            val systemDark = isSystemInDarkTheme()
+            val isDarkTheme = when (settings.themeMode) {
+                "Light"  -> false
+                "Dark"   -> true
+                else     -> systemDark  // "System"
+            }
+
             SideEffect {
                 WindowCompat.getInsetsController(window, window.decorView)
                     .isAppearanceLightStatusBars = !isDarkTheme
             }
-            AnchorTheme {
+            AnchorTheme(
+                useDarkTheme = isDarkTheme,
+                colorProfile = settings.colorProfile
+            ) {
                 var showSplash by remember { mutableStateOf(true) }
                 LaunchedEffect(Unit) {
                     delay(3000) // 3 seconds
@@ -65,7 +83,7 @@ class MainActivity : ComponentActivity() {
                 if (showSplash) {
                     SplashScreen()
                 } else {
-                    AppNavigation()
+                    AppNavigation(settingsViewModel = settingsViewModel)
                 }
             }
         }
@@ -74,7 +92,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation() {
+fun AppNavigation(settingsViewModel: SettingsViewModel) {
     val navController = rememberNavController()
     val taskViewModel: TaskViewModel = viewModel()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -89,7 +107,7 @@ fun AppNavigation() {
 
     Scaffold(
         topBar = {
-            if (currentRoute in listOf("tasks_screen", "priority_screen", "badges_screen")) {
+            if (currentRoute in listOf("tasks_screen", "priority_screen", "badges_screen", "settings_screen")) {
                 TopAppBar(
                     title = {
                         Text(
@@ -97,6 +115,7 @@ fun AppNavigation() {
                                 "tasks_screen" -> "Tasks"
                                 "priority_screen" -> "Priority"
                                 "badges_screen" -> "Badges"
+                                "settings_screen" -> "Settings"  // Title for settings screen
                                 else -> ""
                             }
                         )
@@ -126,9 +145,12 @@ fun AppNavigation() {
             startDestination = "priority_screen",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("tasks_screen") { TasksScreen(navController, taskViewModel, badgesViewModel) }
-            composable("priority_screen") { PriorityScreen(navController, taskViewModel, badgesViewModel) }
+            // Pass settingsViewModel to screens that need it
+            composable("tasks_screen") { TasksScreen(navController, taskViewModel, badgesViewModel, settingsViewModel) }
+            composable("priority_screen") { PriorityScreen(navController, taskViewModel, badgesViewModel, settingsViewModel) }
             composable("badges_screen") { edu.fullsail.anchor.engagement.badges.BadgesScreen(badgesViewModel) }
+            // Settings screen route
+            composable("settings_screen") { SettingsScreen(settingsViewModel) }
             composable(
                 route = "create_task_screen?taskId={taskId}",
                 arguments = listOf(navArgument("taskId") {
@@ -140,7 +162,8 @@ fun AppNavigation() {
                 CreateTaskScreen(
                     navController = navController,
                     taskViewModel = taskViewModel,
-                    taskId = taskId
+                    taskId = taskId,
+                    settingsViewModel = settingsViewModel  // Pass settings for defaults
                 )
             }
         }
@@ -148,14 +171,17 @@ fun AppNavigation() {
 }
 
 //--- TASKS SCREEN ---
+// Added settingsViewModel parameter
 @Composable
 fun TasksScreen(
     navController: NavController,
     taskViewModel: TaskViewModel,
-    badgesViewModel: BadgesViewModel
+    badgesViewModel: BadgesViewModel,
+    settingsViewModel: SettingsViewModel  // Receive settings
 ) {
     val tasks by taskViewModel.tasks.collectAsState()
     val groupedTasks = tasks.groupBy { it.timeframe }
+    val settings by settingsViewModel.settings.collectAsState()  // Observe settings
 
     LazyColumn(
         modifier = Modifier
@@ -185,6 +211,8 @@ fun TasksScreen(
                         task = task,
                         onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
                         onDelete = { taskViewModel.deleteTask(task.id) },
+                        // Pass settings for compact mode and confirm delete
+                        settings = settings,
                         /*
                         BADGE SYSTEM BRIDGE:
                         After a task is completed, we rebuild UserEngagementStats and re-evaluate badges.
@@ -192,7 +220,7 @@ fun TasksScreen(
                         Do not remove without updating the badge evaluation pipeline.
                          */
                         onToggleComplete = { taskViewModel.toggleTaskCompletion(task.id)
-                        val stats = taskViewModel.buildEngagementStats()
+                            val stats = taskViewModel.buildEngagementStats()
                             val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
                                 stats = stats,
                                 existing = badgesViewModel.badges
@@ -240,19 +268,24 @@ fun SplashScreen() {
 }
 
 //--- TASK ITEM ---
+// Added settings parameter for compact mode and confirm delete
 @Composable
 fun TaskItem(
     task: Task,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onToggleComplete: () -> Unit
+    onToggleComplete: () -> Unit,
+    settings: AppSettings  // Receive settings
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
 
+    // Apply compact mode - reduce padding when enabled
+    val cardPadding = if (settings.compactMode) 6.dp else 12.dp
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(cardPadding),  // Dynamic padding
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
@@ -269,7 +302,14 @@ fun TaskItem(
             IconButton(onClick = { showEditDialog = true }) {
                 Icon(Icons.Filled.Edit, contentDescription = "Edit Task")
             }
-            IconButton(onClick = { showDeleteDialog = true }) {
+            // Delete button - show dialog or delete immediately based on setting
+            IconButton(onClick = {
+                if (settings.confirmBeforeDeleting) {
+                    showDeleteDialog = true
+                } else {
+                    onDelete()
+                }
+            }) {
                 Icon(Icons.Filled.Delete, contentDescription = "Delete Task")
             }
         }
@@ -332,20 +372,24 @@ fun TaskItem(
 fun CreateTaskScreen(
     navController: NavController,
     taskViewModel: TaskViewModel,
-    taskId: String?
+    taskId: String?,
+    settingsViewModel: SettingsViewModel  // Receive settings for defaults
 ) {
     val isEditing = taskId != null
     val taskToEdit = if (isEditing) taskViewModel.getTaskById(taskId!!) else null
+    val settings by settingsViewModel.settings.collectAsState() // Observe settings
 
     var titleInput by remember { mutableStateOf(taskToEdit?.title ?: "") }
     var dueDateMillis by remember { mutableStateOf(taskToEdit?.dueDateMillis) }
     val priorityOptions = listOf("High", "Medium", "Low")
-    var selectedPriority by remember { mutableStateOf(taskToEdit?.priority ?: priorityOptions[1]) }
+    // Use settings default for new tasks, existing value for editing
+    var selectedPriority by remember {
+        mutableStateOf(taskToEdit?.priority ?: settings.defaultPriority)
+    }
     val timeframeOptions = listOf("Daily", "Weekly", "Monthly", "Yearly")
+    // Use settings default for new tasks, existing value for editing
     var selectedTimeframe by remember {
-        mutableStateOf(
-            taskToEdit?.timeframe ?: timeframeOptions[0]
-        )
+        mutableStateOf(taskToEdit?.timeframe ?: settings.defaultTimeframe)
     }
     var validationError by remember { mutableStateOf<String?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -642,6 +686,18 @@ fun BottomNavigationBar(navController: NavController) {
             selected = currentRoute == "badges_screen",
             onClick = {
                 navController.navigate("badges_screen") {
+                    popUpTo(navController.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            }
+        )
+        // Settings Screen
+        NavigationBarItem(
+            icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
+            label = { Text("Settings") },
+            selected = currentRoute == "settings_screen",
+            onClick = {
+                navController.navigate("settings_screen") {
                     popUpTo(navController.graph.startDestinationId)
                     launchSingleTop = true
                 }

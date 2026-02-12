@@ -42,9 +42,11 @@ import androidx.compose.ui.geometry.Offset
 fun PriorityScreen(
     navController: NavController,
     viewModel: TaskViewModel = viewModel(),
-    badgesViewModel: BadgesViewModel
+    badgesViewModel: BadgesViewModel,
+    settingsViewModel: edu.fullsail.anchor.SettingsViewModel  // Receive settings
 ) {
     val allTasks by viewModel.tasks.collectAsState()
+    val settings by settingsViewModel.settings.collectAsState()  // Observe settings
 
     // adding confetti value
     val explosions = remember { mutableStateListOf<Explosion>() }
@@ -60,6 +62,11 @@ fun PriorityScreen(
         val medium = incomplete.filter { it.priority == "Medium" }
         val low = incomplete.filter { it.priority == "Low" }
         Triple(high, medium, low)
+    }
+
+    // Calculate displayed high tasks based on limitFocusToThree setting
+    val displayedHighTasks = remember(high, settings.limitFocusToThree) {
+        if (settings.limitFocusToThree) high.take(3) else high
     }
 
     // Track expanded state for each section
@@ -102,7 +109,12 @@ fun PriorityScreen(
             // --- FOCUS Section (High Priority) ---
             item(key = "header_focus") {
                 val focusCount = high.size
-                val additionalCount = (focusCount - 3).coerceAtLeast(0)
+                // Only show additional count when limit is ON
+                val additionalCount = if (settings.limitFocusToThree && focusCount > 3) {
+                    (focusCount - 3).coerceAtLeast(0)
+                } else {
+                    0
+                }
                 PrioritySectionHeader(
                     title = "⭐ Focus",
                     additionalCount = additionalCount,
@@ -112,7 +124,8 @@ fun PriorityScreen(
             }
 
             if (isFocusExpanded) {
-                items(high.take(3), key = { task: Task -> task.id }) { task ->
+                // Use displayedHighTasks instead of high.take(3)
+                items(displayedHighTasks, key = { task: Task -> task.id }) { task ->
                     PriorityTaskRow(
                         task = task,
                         onToggle = { pos -> onTaskComplete(task.id, pos) },
@@ -123,7 +136,8 @@ fun PriorityScreen(
                                 task.id,
                                 newPriority
                             )
-                        }
+                        },
+                        settings = settings  // Pass settings to task row
                     )
                 }
             }
@@ -150,14 +164,16 @@ fun PriorityScreen(
                                     task.id,
                                     newPriority
                                 )
-                            }
+                            },
+                            settings = settings  // Pass settings to task row
                         )
                     }
                 }
             }
 
             // --- LATER/OPTIONAL Section (Low Priority) ---
-            if (low.isNotEmpty()) {
+            // Only show if setting is OFF or there are low priority tasks to show
+            if (low.isNotEmpty() && !settings.hideLowPriorityInPriorityScreen) {
                 item(key = "header_later") {
                     PrioritySectionHeader(
                         title = "⏳ Later/Optional",
@@ -178,7 +194,8 @@ fun PriorityScreen(
                                     task.id,
                                     newPriority
                                 )
-                            }
+                            },
+                            settings = settings  // Pass settings to task row
                         )
                     }
                 }
@@ -242,7 +259,8 @@ private fun PriorityTaskRow(
     onToggle: (Offset) -> Unit,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
-    onPriorityChange: (String) -> Unit
+    onPriorityChange: (String) -> Unit,
+    settings: edu.fullsail.anchor.AppSettings  // Receive settings
 ) {
     var showPriorityMenu by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -251,11 +269,16 @@ private fun PriorityTaskRow(
     // capture position for confetti
     var checkboxPosition by remember { mutableStateOf(Offset.Zero) }
 
-    Card(modifier = Modifier.padding(horizontal = 16.dp)) {
+    // Apply compact mode - reduce padding when enabled
+    val cardHorizontalPadding = if (settings.compactMode) 12.dp else 16.dp
+    val rowPadding = if (settings.compactMode) 4.dp else 8.dp
+    val verticalPadding = if (settings.compactMode) 6.dp else 12.dp
+
+    Card(modifier = Modifier.padding(horizontal = cardHorizontalPadding)) {  // Dynamic horizontal padding
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 8.dp, end = 4.dp),
+                .padding(start = rowPadding, end = 4.dp),  // Dynamic start padding
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
@@ -274,7 +297,7 @@ private fun PriorityTaskRow(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(vertical = 12.dp, horizontal = 8.dp)
+                    .padding(vertical = verticalPadding, horizontal = 8.dp)  // Dynamic vertical padding
             ) {
                 Text(
                     text = task.title,
@@ -289,7 +312,14 @@ private fun PriorityTaskRow(
             IconButton(onClick = { showEditDialog = true }) {
                 Icon(Icons.Default.Edit, contentDescription = "Edit Task")
             }
-            IconButton(onClick = { showDeleteDialog = true }) {
+            // Delete button - show dialog or delete immediately based on setting
+            IconButton(onClick = {
+                if (settings.confirmBeforeDeleting) {
+                    showDeleteDialog = true
+                } else {
+                    onDelete()
+                }
+            }) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete Task")
             }
             Box {
@@ -317,6 +347,7 @@ private fun PriorityTaskRow(
         }
     }
 
+    // Delete confirmation dialog (only shown if confirmBeforeDeleting is ON)
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },

@@ -58,9 +58,17 @@ private val LightColors = lightColorScheme(
 @Composable
 fun AnchorTheme(
     useDarkTheme: Boolean = isSystemInDarkTheme(),
+    // branch on colorProfile to swap color schemes.
+    // Values: "Default", "Deuteranopia", "Protanopia", "Tritanopia"
+    colorProfile: String = "Default",
     content: @Composable () -> Unit
 ) {
-    val colors = if (useDarkTheme) DarkColors else LightColors
+    val colors = when (colorProfile) {
+        "Deuteranopia" -> if (useDarkTheme) DeuteranopiaDarkColorScheme else DeuteranopiaLightColorScheme
+        "Protanopia"   -> if (useDarkTheme) ProtanopiaDarkColorScheme   else ProtanopiaLightColorScheme
+        "Tritanopia"   -> if (useDarkTheme) TritanopiaDarkColorScheme   else TritanopiaLightColorScheme
+        else           -> if (useDarkTheme) DarkColors                  else LightColors  // "Default"
+    }
 
     MaterialTheme(
         colorScheme = colors,

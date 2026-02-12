@@ -69,17 +69,17 @@ val LightAccentLavender = Color(0xFF7C8DB5)
 // Base palette values for Deuteranopia, Protanopia and Tritanopia modes
 // These values are referenced by the colorblind theme schemes in ColorBlindThemes.kt
 
-// Deuteranopia Palette (Placeholder values)
-val DeuteranopiaPrimary = Color(0xFF000000)
-val DeuteranopiaSecondary = Color(0xFF000000)
-val DeuteranopiaAccent = Color(0xFF000000)
+// Deuteranopia Palette
+val DeuteranopiaPrimary = Color(0xFF4477AA)
+val DeuteranopiaSecondary = Color(0xFF66CCEE)
+val DeuteranopiaAccent = Color(0xFFAA3377)
 
-// Protanopia Palette (Placeholder values)
-val ProtanopiaPrimary = Color(0xFF000000)
-val ProtanopiaSecondary = Color(0xFF000000)
-val ProtanopiaAccent = Color(0xFF000000)
+// Protanopia Palette
+val ProtanopiaPrimary = Color(0xFF332288)
+val ProtanopiaSecondary = Color(0xFF88CCEE)
+val ProtanopiaAccent = Color(0xFFCC6677)
 
-// Tritanopia Palette (Placeholder values)
-val TritanopiaPrimary = Color(0xFF000000)
-val TritanopiaSecondary = Color(0xFF000000)
-val TritanopiaAccent = Color(0xFF000000)
+// Tritanopia Palette
+val TritanopiaPrimary = Color(0xFF117733)
+val TritanopiaSecondary = Color(0xFF44AA99)
+val TritanopiaAccent = Color(0xFFDDCC77)

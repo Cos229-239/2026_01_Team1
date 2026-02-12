@@ -7,7 +7,6 @@ import androidx.compose.material3.darkColorScheme
 // Color schemes used for Deuteranopia, Protanopia, and Tritanopia modes.
 // These use the palette values that are defined in Color.kt and integrate
 // with the app's existing light and dark modes.
-// TODO: Replace placeholder values with real colorblind-safe palettes
 
 // Deuteranopia
 val DeuteranopiaLightColorScheme = lightColorScheme(

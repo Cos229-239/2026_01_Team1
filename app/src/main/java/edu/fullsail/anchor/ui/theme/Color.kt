@@ -66,6 +66,8 @@ val LightSecondaryGold = Color(0xFFD4A24C)
 val LightAccentLavender = Color(0xFF7C8DB5)
 
 // Colorblind Accessibility Palettes
+// Base palette values for Deuteranopia, Protanopia and Tritanopia modes
+// These values are referenced by the colorblind theme schemes in ColorBlindThemes.kt
 
 // Deuteranopia Palette (Placeholder values)
 val DeuteranopiaPrimary = Color(0xFF000000)

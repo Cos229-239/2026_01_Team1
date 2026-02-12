@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -192,6 +193,7 @@ fun TasksScreen(
     val groupedTasks = tasks.groupBy { it.timeframe }
     val settings by settingsViewModel.settings.collectAsState()  // Observe settings
 
+<<<<<<< Updated upstream
     // Track expanded state for each timeframe section
     // NOTE: Changed from rememberSaveable to remember to fix crash (The app would crash after pressing task list)
     // Using remember instead of rememberSaveable because mutableStateMapOf is not directly serializable
@@ -206,6 +208,12 @@ fun TasksScreen(
             }
         }
     }
+=======
+    // Track which timeframe sections are expanded/collapsed
+    val expandedSections = remember { mutableStateMapOf<String, Boolean>().apply {
+        listOf("Daily", "Weekly", "Monthly", "Yearly").forEach { put(it, true) }
+    }}
+>>>>>>> Stashed changes
 
     LazyColumn(
         modifier = Modifier
@@ -234,7 +242,10 @@ fun TasksScreen(
                         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
                 }
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
                 // Only render task items if section is expanded
                 // NOTE: This conditional prevents rendering items in LazyColumn when collapsed
                 if (expandedSections[timeframe] == true) {

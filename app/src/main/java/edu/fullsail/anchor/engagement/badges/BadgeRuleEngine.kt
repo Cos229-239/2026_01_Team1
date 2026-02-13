@@ -3,9 +3,23 @@ package edu.fullsail.anchor.engagement.badges
 import edu.fullsail.anchor.R
 import edu.fullsail.anchor.engagement.UserEngagementStats
 
+
+/**
+ * Central rule engine responsible for:
+ * - Defining initial badge states
+ * - Recomputing badge progress
+ * - Determining newly unlocked badges
+ *
+ * This object contains pure logic only.
+ * No UI and no persistence should live here.
+ */
 object BadgeRuleEngine {
-    /*
-    Initial badge definitions (locked)
+    /**
+     * Defines the initial badge list.
+     *
+     * All badges start locked with 0 progress.
+     * These definitions act as the "source of truth"
+     * for badge requirements.
      */
     fun initialBadges(): List<Badge> = listOf(
         Badge(
@@ -63,18 +77,29 @@ object BadgeRuleEngine {
             iconRes = R.drawable.badge_shooting_star
         )
     )
-    /*
-    Recomputes all badge progress/unlocked states from stats
+    /**
+     * Recomputes all badge states based on updated user engagement stats.
+     *
+     * Returns:
+     *  - First: Updated list of badges
+     *  - Second: List of badges newly unlocked during this evaluation
+     *
+     * This method is deterministic:
+     * Given the same stats and existing badges,
+     * it will always return the same result.
      */
     fun evaluate(
         stats: UserEngagementStats,
         existing: List<Badge>
     ): Pair<List<Badge>, List<Badge>> {
+
+        //Recalculate progress for every badge
         val updated = existing.map {
             badge -> when(badge.id){
             BadgeIds.FIRST_TASK -> applyRule(badge, progress(stats.completedTasksTotal, goal = 1))
             BadgeIds.STREAK_3 -> applyRule(badge, progress(stats.streakDays, goal = 3))
             BadgeIds.STEADFAST -> {
+                // Badge unlocks only if all scheduled tasks were completed
                 val cleared = stats.scheduledToday > 0 &&
                         stats.completedToday >= stats.scheduledToday
                 applyRule(badge, if(cleared) 1f else 0f)
@@ -85,15 +110,37 @@ object BadgeRuleEngine {
             else -> badge
             }
         }
+        /**
+         * Detects badges that were previously locked
+         * but are now unlocked during this evaluation cycle.
+         *
+         * Useful for:
+         * - Showing celebration dialogs
+         * - Triggering animations
+         * - Sending notifications
+         */
         val newlyUnlocked = updated.filter { u ->
             u.unlocked && (existing.firstOrNull { it.id == u.id}?.unlocked == false)
         }
         return updated to newlyUnlocked
     }
+    /**
+     * Calculates progress toward a goal as a float (0f–1f).
+     *
+     * coerceIn ensures:
+     * - Progress never exceeds 1f
+     * - Progress never drops below 0f
+     */
     private fun progress(value: Int, goal: Int): Float{
         if(goal <= 0) return 0f
         return(value.toFloat() / goal.toFloat()).coerceIn(0f, 1f)
     }
+    /**
+     * Applies a calculated progress value to a badge.
+     *
+     * If progress reaches 1f, the badge becomes unlocked.
+     * Once unlocked, progress is forced to 1f.
+     */
     private fun applyRule(badge: Badge, p: Float): Badge {
         val unlocked = p >= 1f
         return badge.copy(
@@ -102,8 +149,15 @@ object BadgeRuleEngine {
         )
     }
 }
-/*
-IDs are const to reference badges safely
+/**
+ * Centralized badge ID constants.
+ *
+ * Using constants prevents:
+ * - Typos
+ * - Hardcoded strings
+ * - Rule mismatches
+ *
+ * These IDs act as stable references across the app.
  */
 object BadgeIds {
     const val FIRST_TASK = "first_task"

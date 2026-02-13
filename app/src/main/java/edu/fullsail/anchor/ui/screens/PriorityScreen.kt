@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.graphicsLayer
@@ -37,6 +38,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import edu.fullsail.anchor.engagement.badges.Explosion
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.res.painterResource
+import edu.fullsail.anchor.R
 
 @Composable
 fun PriorityScreen(
@@ -116,7 +119,9 @@ fun PriorityScreen(
                     0
                 }
                 PrioritySectionHeader(
-                    title = "⭐ Focus",
+                    title = "Focus",
+                    //Calls the PNG image from the drawable file
+                    iconRes = R.drawable.focus,
                     additionalCount = additionalCount,
                     isExpanded = isFocusExpanded,
                     onToggle = { isFocusExpanded = !isFocusExpanded }
@@ -212,6 +217,7 @@ fun PriorityScreen(
 @Composable
 private fun PrioritySectionHeader(
     title: String,
+    iconRes: Int? = null,
     additionalCount: Int = 0,
     isExpanded: Boolean,
     onToggle: () -> Unit
@@ -228,10 +234,21 @@ private fun PrioritySectionHeader(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (iconRes != null) {
+            Image(
+                painter = painterResource(id = iconRes),
+                contentDescription =  null,
+                modifier = Modifier
+                    .size(30.dp)
+                    .padding(end = 8.dp)
+            )
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge
         )
+
+        Spacer(Modifier.weight(1f))
 
         if (additionalCount > 0) {
             Spacer(Modifier.weight(1f))
@@ -241,8 +258,6 @@ private fun PrioritySectionHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(end = 8.dp)
             )
-        } else {
-            Spacer(Modifier.weight(1f))
         }
 
         Icon(

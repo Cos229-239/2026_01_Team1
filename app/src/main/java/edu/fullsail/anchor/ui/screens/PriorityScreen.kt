@@ -87,8 +87,10 @@ fun PriorityScreen(
 
         // add explosion at a specific position
         explosions.add(Explosion(id = System.nanoTime(), position = adjustedPosition))
-
-        // badges logic
+    }
+    // badges logic
+    // making this a lunched effect due to issues popping up
+    LaunchedEffect(allTasks) {
         val stats = viewModel.buildEngagementStats()
         val (updateBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
             stats = stats,
@@ -237,7 +239,7 @@ private fun PrioritySectionHeader(
         if (iconRes != null) {
             Image(
                 painter = painterResource(id = iconRes),
-                contentDescription =  null,
+                contentDescription = null,
                 modifier = Modifier
                     .size(30.dp)
                     .padding(end = 8.dp)
@@ -312,7 +314,10 @@ private fun PriorityTaskRow(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(vertical = verticalPadding, horizontal = 8.dp)  // Dynamic vertical padding
+                    .padding(
+                        vertical = verticalPadding,
+                        horizontal = 8.dp
+                    )  // Dynamic vertical padding
             ) {
                 Text(
                     text = task.title,

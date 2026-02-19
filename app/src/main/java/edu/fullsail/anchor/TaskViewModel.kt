@@ -2,78 +2,50 @@ package edu.fullsail.anchor
 
 import java.util.Calendar
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 import java.util.UUID
 import edu.fullsail.anchor.engagement.UserEngagementStats
+// ADDED FOR PERSISTENCE
+import edu.fullsail.anchor.data.TaskRepository
+// ADDED FOR PERSISTENCE
+import kotlinx.coroutines.flow.SharingStarted
+// ADDED FOR PERSISTENCE
+import kotlinx.coroutines.flow.stateIn
 
-class TaskViewModel : ViewModel() {
+// MODIFIED FOR PERSISTENCE
+// Constructor now accepts a TaskRepository instead of holding data in-memory.
+// The factory at the bottom of this file is required because ViewModel constructors
+// with parameters cannot be created by the default ViewModelProvider.
+class TaskViewModel(
+    // ADDED FOR PERSISTENCE — injected repository replaces the in-memory list
+    private val repository: TaskRepository
+) : ViewModel() {
 
-    // Use StateFlow to hold the task list, which allows the UI to observe changes.
-    private val _tasks = MutableStateFlow<List<Task>>(emptyList())
-    val tasks = _tasks.asStateFlow()
+    // MODIFIED FOR PERSISTENCE
+    // Previously: private val _tasks = MutableStateFlow<List<Task>>(emptyList())
+    // Now: tasks comes from the repository's Flow, converted to StateFlow so the
+    // existing UI code that calls taskViewModel.tasks.collectAsState() works unchanged.
+    val tasks = repository.tasks.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
-    init {
-        // Added some sample data for demonstration purposes, so we can have something to show in the meeting.
-        _tasks.value = listOf(
-            Task(
-                title = "Design new app icon",
-                dueDateMillis = System.currentTimeMillis() + 172800000,
-                priority = "High",
-                timeframe = "Weekly"
-            ),
-            Task(
-                title = "Write team status report",
-                dueDateMillis = System.currentTimeMillis() + 86400000,
-                priority = "High",
-                timeframe = "Daily"
-            ),
-            Task(
-                title = "Review PR from Dustin",
-                dueDateMillis = null,
-                priority = "High",
-                timeframe = "Daily"
-            ),
-            Task(
-                title = "Plan team offsite",
-                dueDateMillis = System.currentTimeMillis() + 259200000,
-                priority = "High",
-                timeframe = "Monthly"
-            ),
-            Task(
-                title = "Fix bug #123",
-                dueDateMillis = System.currentTimeMillis() + 3600000,
-                priority = "Medium",
-                timeframe = "Daily",
-                isCompleted = true
-            ),
-            Task(
-                title = "Respond to user feedback",
-                dueDateMillis = System.currentTimeMillis() + 604800000,
-                priority = "Medium",
-                timeframe = "Weekly"
-            ),
-            Task(
-                title = "Update documentation",
-                dueDateMillis = null,
-                priority = "Low",
-                timeframe = "Monthly"
-            ),
-            Task(
-                title = "Research new libraries",
-                dueDateMillis = System.currentTimeMillis() + 1209600000,
-                priority = "Low",
-                timeframe = "Yearly"
-            ),
-            Task(
-                title = "Refactor login screen",
-                dueDateMillis = null,
-                priority = "Low",
-                timeframe = "Monthly"
-            )
-        )
-    }
+    // REMOVED FOR PERSISTENCE — the init block with sample data is no longer needed
+    // because data persists in the Room database. On first launch the database will
+    // be empty. If you need seed data for testing, insert it via a one-time migration
+    // or a debug utility rather than re-seeding every launch.
+    // The original sample task list is preserved below as a comment for reference:
+    //
+    // init {
+    //     _tasks.value = listOf(
+    //         Task(title = "Design new app icon", dueDateMillis = ..., priority = "High", timeframe = "Weekly"),
+    //         Task(title = "Write team status report", ...),
+    //         ... etc
+    //     )
+    // }
 
     /*
     Required Badge System: Builds UserEngagementStats from current tasks
@@ -82,7 +54,9 @@ class TaskViewModel : ViewModel() {
     Do not remove or change without updating badge logic.
      */
     fun buildEngagementStats(nowMillis: Long = System.currentTimeMillis()): UserEngagementStats {
-        val all = _tasks.value
+        // MODIFIED FOR PERSISTENCE — reads from tasks.value (StateFlow) instead of _tasks.value
+        // The StateFlow is now backed by Room, but the value snapshot works identically.
+        val all = tasks.value
 
         val completedTasksTotal = all.count { it.isCompleted }
 
@@ -115,45 +89,45 @@ class TaskViewModel : ViewModel() {
     fun toggleTaskCompletion(taskId: String) {
         val now = System.currentTimeMillis()
 
-        _tasks.update { currentTasks ->
-            currentTasks.map { task ->
-                if (task.id == taskId) {
-                    val newCompletedState = !task.isCompleted
-                    task.copy(
-                        isCompleted = newCompletedState,
-                        /*
-                        Record completion time for streak + daily badge logic
-                         Badge system dependency: records completion timestamps for streak-based achievements
-                         */
-                        completedAtMillis = if (newCompletedState) now else null
-                    )
-            } else (
-                task
-            )
-        }
+        // MODIFIED FOR PERSISTENCE — find the task in the current snapshot, then persist via repository
+        val task = tasks.value.find { it.id == taskId } ?: return
+        val newCompletedState = !task.isCompleted
+        val updatedTask = task.copy(
+            isCompleted = newCompletedState,
+            /*
+            Record completion time for streak + daily badge logic
+             Badge system dependency: records completion timestamps for streak-based achievements
+             */
+            completedAtMillis = if (newCompletedState) now else null
+        )
+        // ADDED FOR PERSISTENCE — persist the toggled state to Room
+        viewModelScope.launch {
+            repository.updateTask(updatedTask)
         }
     }
 
     fun deleteTask(taskId: String) {
-        _tasks.update { currentTasks ->
-            currentTasks.filterNot { it.id == taskId }
+        // MODIFIED FOR PERSISTENCE — find the task then delete via repository instead of filtering the in-memory list
+        val task = tasks.value.find { it.id == taskId } ?: return
+        // ADDED FOR PERSISTENCE — delete from Room on a background coroutine
+        viewModelScope.launch {
+            repository.deleteTask(task)
         }
     }
 
     fun updatePriority(taskId: String, newPriority: String) {
-        _tasks.update { currentTasks ->
-            currentTasks.map { task ->
-                if (task.id == taskId) {
-                    task.copy(priority = newPriority)
-                } else {
-                    task
-                }
-            }
+        // MODIFIED FOR PERSISTENCE — find the task, copy with new priority, persist to Room
+        val task = tasks.value.find { it.id == taskId } ?: return
+        val updatedTask = task.copy(priority = newPriority)
+        // ADDED FOR PERSISTENCE — write updated priority to Room
+        viewModelScope.launch {
+            repository.updateTask(updatedTask)
         }
     }
 
     fun getTaskById(taskId: String): Task? {
-        return _tasks.value.find { it.id == taskId }
+        // MODIFIED FOR PERSISTENCE — still reads from the StateFlow snapshot; behaviour unchanged
+        return tasks.value.find { it.id == taskId }
     }
 
     fun addTask(title: String, dueDateMillis: Long?, priority: String, timeframe: String): Boolean {
@@ -168,7 +142,11 @@ class TaskViewModel : ViewModel() {
             timeframe = timeframe,
             isCompleted = false
         )
-        _tasks.update { it + newTask }
+        // MODIFIED FOR PERSISTENCE — insert into Room instead of updating in-memory list
+        // ADDED FOR PERSISTENCE
+        viewModelScope.launch {
+            repository.insertTask(newTask)
+        }
         return true
     }
 
@@ -183,17 +161,42 @@ class TaskViewModel : ViewModel() {
             return false
         }
 
-        val taskIndex = _tasks.value.indexOfFirst { it.id == id }
-        if (taskIndex != -1) {
-            val updatedTasks = _tasks.value.toMutableList()
-            updatedTasks[taskIndex] = updatedTasks[taskIndex].copy(
-                title = title,
-                dueDateMillis = dueDateMillis,
-                priority = priority,
-                timeframe = timeframe
-            )
-            _tasks.value = updatedTasks
+        // MODIFIED FOR PERSISTENCE — find existing task to preserve fields not being edited
+        val existingTask = tasks.value.find { it.id == id } ?: return false
+        val updatedTask = existingTask.copy(
+            title = title,
+            dueDateMillis = dueDateMillis,
+            priority = priority,
+            timeframe = timeframe
+        )
+        // ADDED FOR PERSISTENCE — persist the edit to Room
+        viewModelScope.launch {
+            repository.updateTask(updatedTask)
         }
         return true
+    }
+}
+
+// ADDED FOR PERSISTENCE
+/**
+ * Factory required to construct TaskViewModel with a TaskRepository parameter.
+ * The default ViewModelProvider cannot inject constructor arguments, so this
+ * factory is passed to viewModel() in MainActivity / AppNavigation.
+ *
+ * Usage in a Composable:
+ *   val factory = TaskViewModelFactory(TaskRepository(AnchorDatabase.getInstance(context).taskDao()))
+ *   val taskViewModel: TaskViewModel = viewModel(factory = factory)
+ */
+class TaskViewModelFactory(
+    // ADDED FOR PERSISTENCE
+    private val repository: TaskRepository
+) : ViewModelProvider.Factory {
+    // ADDED FOR PERSISTENCE
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(TaskViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return TaskViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
 }

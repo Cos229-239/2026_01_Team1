@@ -41,6 +41,9 @@ import edu.fullsail.anchor.engagement.badges.Explosion
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.res.painterResource
 import edu.fullsail.anchor.R
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+
 
 @Composable
 fun PriorityScreen(
@@ -51,7 +54,9 @@ fun PriorityScreen(
 ) {
     val allTasks by viewModel.tasks.collectAsState()
     val settings by settingsViewModel.settings.collectAsState()  // Observe settings
+    val context = LocalContext.current
 
+    //prevents showing the same badge toast more than once
     // adding confetti value
     val explosions = remember { mutableStateListOf<Explosion>() }
 
@@ -96,6 +101,15 @@ fun PriorityScreen(
             existing = badgesViewModel.badges
         )
         badgesViewModel.saveBadges(updateBadges)
+
+        //Toast only for newly unlocked badges
+        newlyUnlocked.forEach { badge ->
+            Toast.makeText(
+                context,
+                "Badge unlocked: ${badge.title}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     // confetti wrapping it all in a box

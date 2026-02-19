@@ -1,6 +1,6 @@
 package edu.fullsail.anchor.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
+import  androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import edu.fullsail.anchor.Task
@@ -122,6 +123,7 @@ fun PriorityScreen(
                     title = "Focus",
                     //Calls the PNG image from the drawable file
                     iconRes = R.drawable.focus,
+                    iconSize = 30.dp,
                     additionalCount = additionalCount,
                     isExpanded = isFocusExpanded,
                     onToggle = { isFocusExpanded = !isFocusExpanded }
@@ -181,7 +183,9 @@ fun PriorityScreen(
             if (low.isNotEmpty() && !settings.hideLowPriorityInPriorityScreen) {
                 item(key = "header_later") {
                     PrioritySectionHeader(
-                        title = "⏳ Later/Optional",
+                        title = "Later/Optional",
+                        iconRes = R.drawable.hourglass,
+                        iconSize = 18.dp,
                         isExpanded = isLaterExpanded,
                         onToggle = { isLaterExpanded = !isLaterExpanded }
                     )
@@ -218,6 +222,7 @@ fun PriorityScreen(
 private fun PrioritySectionHeader(
     title: String,
     iconRes: Int? = null,
+    iconSize: Dp = 30.dp,
     additionalCount: Int = 0,
     isExpanded: Boolean,
     onToggle: () -> Unit
@@ -239,7 +244,7 @@ private fun PrioritySectionHeader(
                 painter = painterResource(id = iconRes),
                 contentDescription =  null,
                 modifier = Modifier
-                    .size(30.dp)
+                    .size(iconSize)
                     .padding(end = 8.dp)
             )
         }

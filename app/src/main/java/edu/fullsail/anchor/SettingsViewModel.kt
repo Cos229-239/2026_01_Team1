@@ -95,6 +95,10 @@ class SettingsViewModel(
         _settings.value = _settings.value.copy(colorProfile = value)
         viewModelScope.launch { settingsDataStore?.saveColorProfile(value) }
     }
+
+    fun updateNotificationsEnabled(enabled: Boolean) {
+        _settings.value = _settings.value.copy(notificationsEnabled = enabled)
+    }
 }
 
 class SettingsViewModelFactory(

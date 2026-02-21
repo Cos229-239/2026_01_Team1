@@ -1,5 +1,7 @@
 package edu.fullsail.anchor
 
+// REQUIRED FOR NOTIFICATIONS
+import edu.fullsail.anchor.notifications.createAnchorNotificationChannel
 // REQUIRED FOR ROOM BADGE STORAGE
 import edu.fullsail.anchor.engagement.badges.RoomBadgeRepository
 import edu.fullsail.anchor.engagement.badges.BadgesViewModelFactory
@@ -58,6 +60,8 @@ import edu.fullsail.anchor.engagement.badges.BadgeRuleEngine
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //Initializes notification channel
+        createAnchorNotificationChannel(this)
         enableEdgeToEdge()
         setContent {
             // Hoist settingsViewModel here so theme reacts to changes immediately.

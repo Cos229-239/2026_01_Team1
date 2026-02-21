@@ -42,16 +42,16 @@ android {
 
 dependencies {
     // ADDED FOR PERSISTENCE — Room runtime and coroutine support
-    implementation("androidx.room:room-runtime:2.6.1")
+    implementation(libs.androidx.room.runtime)
     // ADDED FOR PERSISTENCE — Room coroutines / Flow support
-    implementation("androidx.room:room-ktx:2.6.1")
+    implementation(libs.room.ktx)
     // ADDED FOR PERSISTENCE — Room annotation processor
-    ksp("androidx.room:room-compiler:2.6.1")
+    ksp(libs.androidx.room.compiler)
     // REQUIRED FOR THEME DATASTORE ← ADD THIS LINE
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("androidx.compose.material:material-icons-extended-android:1.6.7")
-    implementation("androidx.navigation:navigation-compose:2.9.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.compose.material.icons.extended.android)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

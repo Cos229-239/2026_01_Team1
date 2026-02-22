@@ -12,16 +12,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-
-/*
- Displays a single badge inside a styled Material3 Card.
- The card visually represents:
- - Badge icon (dimmed if locked)
- - Title and description
- - Progress bar toward unlock
- - Percentage indicator
- This composable is UI-only and does not handle badge logic.
- */
 @Composable
 fun BadgeCard(
     badge: Badge,
@@ -37,24 +27,16 @@ fun BadgeCard(
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        /*
-        Left Side: Badge Icon
-        -Displays badge icon
-        -Uses Alpha to visually indicate locked state
-         */
+        //Left Side: Placeholder to swap out later
         Image(
             painter = painterResource(id = badge.iconRes),
             contentDescription = badge.title,
             modifier = Modifier
-                .size(96.dp)
+                .size(64.dp)
                 .padding(horizontal = 16.dp, vertical = 18.dp)
                 .alpha(if (badge.unlocked) 1f else 0.4f)
         )
-        /*
-        Middle: Badge text content
-        Contains title, description, and progress bar.
-        Uses weight(1f) to take remaining horizontal space.
-         */
+        //Middle: Text Content
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = badge.title,
@@ -71,11 +53,6 @@ fun BadgeCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            /*
-             Progress Bar
-             -coerceIn ensures value stays between 0f and 1f
-             -prevents UI crashes or invalid states.
-             */
             LinearProgressIndicator(
                 progress = { badge.progress.coerceIn(0f, 1f) },
                 modifier = Modifier
@@ -85,10 +62,6 @@ fun BadgeCard(
         }
 
         Spacer(modifier = Modifier.width(12.dp))
-        /*
-        Right Section: Percentage Label
-        Converts progress (0f–1f) into an integer percentage.
-         */
         Text(
             text = "${(badge.progress.coerceIn(0f, 1f) * 100).toInt()}%",
             style = MaterialTheme.typography.labelMedium

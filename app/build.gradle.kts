@@ -32,8 +32,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        jvmToolchain(11)
     }
     buildFeatures {
         compose = true
@@ -42,16 +42,16 @@ android {
 
 dependencies {
     // ADDED FOR PERSISTENCE — Room runtime and coroutine support
-    implementation(libs.androidx.room.runtime)
+    implementation("androidx.room:room-runtime:2.8.4")
     // ADDED FOR PERSISTENCE — Room coroutines / Flow support
-    implementation(libs.room.ktx)
+    implementation("androidx.room:room-ktx:2.8.4")
     // ADDED FOR PERSISTENCE — Room annotation processor
-    ksp(libs.androidx.room.compiler)
+    ksp("androidx.room:room-compiler:2.8.4")
     // REQUIRED FOR THEME DATASTORE ← ADD THIS LINE
-    implementation(libs.androidx.datastore.preferences)
-    implementation(libs.androidx.compose.material.icons.extended.android)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.lifecycle.viewmodel.compose)
+    implementation("androidx.datastore:datastore-preferences:1.2.0")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
+    implementation("androidx.navigation:navigation-compose:2.9.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

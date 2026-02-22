@@ -32,7 +32,7 @@ fun BadgeCard(
             painter = painterResource(id = badge.iconRes),
             contentDescription = badge.title,
             modifier = Modifier
-                .size(64.dp)
+                .size(128.dp)
                 .padding(horizontal = 16.dp, vertical = 18.dp)
                 .alpha(if (badge.unlocked) 1f else 0.4f)
         )

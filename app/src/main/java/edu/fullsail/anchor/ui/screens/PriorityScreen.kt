@@ -96,6 +96,7 @@ fun PriorityScreen(
     }
     // badges logic
     // making this a lunched effect due to issues popping up
+    // this resolved all previous issues.
     LaunchedEffect(allTasks) {
         val stats = viewModel.buildEngagementStats()
         val (updateBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(

@@ -15,5 +15,8 @@ data class AppSettings(
 
     // Future: Color Blind Mode — no UI yet
     // Branch on this in AnchorTheme to swap color schemes when implemented.
-    val colorProfile: String = "Default"
+    val colorProfile: String = "Default",
+
+    //Placeholder for notification system
+    val notificationsEnabled: Boolean = true
 )

@@ -1,5 +1,14 @@
 package edu.fullsail.anchor
 
+// REQUIRED FOR NOTIFICATIONS
+import edu.fullsail.anchor.notifications.createAnchorNotificationChannel
+// REQUIRED FOR ROOM BADGE STORAGE
+import edu.fullsail.anchor.engagement.badges.RoomBadgeRepository
+import edu.fullsail.anchor.engagement.badges.BadgesViewModelFactory
+// REQUIRED FOR THEME DATASTORE
+import edu.fullsail.anchor.data.SettingsDataStore
+import edu.fullsail.anchor.data.TaskRepository
+import edu.fullsail.anchor.data.AnchorDatabase
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -51,11 +60,18 @@ import edu.fullsail.anchor.engagement.badges.BadgeRuleEngine
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //Initializes notification channel
+        createAnchorNotificationChannel(this)
         enableEdgeToEdge()
         setContent {
             // Hoist settingsViewModel here so theme reacts to changes immediately.
             // The same instance is passed into AppNavigation to avoid a duplicate ViewModel.
-            val settingsViewModel: SettingsViewModel = viewModel()
+            // REQUIRED FOR THEME DATASTORE — factory injects SettingsDataStore so theme persists
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val settingsViewModelFactory = remember {
+                SettingsViewModelFactory(SettingsDataStore(context))
+            }
+            val settingsViewModel: SettingsViewModel = viewModel(factory = settingsViewModelFactory)
             val settings by settingsViewModel.settings.collectAsState()
 
             // Resolve dark theme from user setting.
@@ -90,20 +106,49 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// Replace the existing AppNavigation composable with this version.
+// All content inside (Scaffold, NavHost, composable routes, etc.) is
+// IDENTICAL to the original — only the taskViewModel creation line changes.
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(settingsViewModel: SettingsViewModel) {
     val navController = rememberNavController()
-    val taskViewModel: TaskViewModel = viewModel()
+
+    // ADDED FOR PERSISTENCE — obtain application context to build the database
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // ADDED FOR PERSISTENCE — build the repository from the singleton Room database
+    val taskRepository = remember {
+        TaskRepository(AnchorDatabase.getInstance(context).taskDao())
+    }
+
+    // ADDED FOR PERSISTENCE — factory needed because TaskViewModel now has a constructor param
+    val taskViewModelFactory = remember { TaskViewModelFactory(taskRepository) }
+
+    // MODIFIED FOR PERSISTENCE — pass the factory so the ViewModel receives the repository
+    // Previously: val taskViewModel: TaskViewModel = viewModel()
+    val taskViewModel: TaskViewModel = viewModel(factory = taskViewModelFactory)
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
     /*
     Shared BadgesViewModel instance so task completion can trigger badge evaluation
     Note (Gamification): Keep this BadgesViewModel created at the navigation level.
     Task completion uses this shared instance to eval/update badges.
     Removing / Moving this line will break tasks -> badge progress / unlocks.
     */
-    val badgesViewModel: BadgesViewModel = viewModel()
+    // MODIFIED FOR PERSISTENCE — build RoomBadgeRepository and pass via factory
+    // Previously: val badgesViewModel: BadgesViewModel = viewModel()
+    // REQUIRED FOR ROOM BADGE STORAGE
+    val badgeRepo = remember {
+        RoomBadgeRepository(AnchorDatabase.getInstance(context).badgeProgressDao())
+    }
+    // REQUIRED FOR ROOM BADGE STORAGE
+    val badgesViewModelFactory = remember { BadgesViewModelFactory(badgeRepo) }
+    // REQUIRED FOR ROOM BADGE STORAGE
+    val badgesViewModel: BadgesViewModel = viewModel(factory = badgesViewModelFactory)
 
     Scaffold(
         topBar = {

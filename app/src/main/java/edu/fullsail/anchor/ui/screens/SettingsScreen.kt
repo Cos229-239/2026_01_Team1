@@ -143,6 +143,22 @@ fun SettingsScreen(
             selectedProfile = settings.colorProfile,
             onProfileSelected = { settingsViewModel.setColorProfile(it) }
         )
+
+        Divider ()
+
+        //Notification section
+        Text(
+            text = "Notifications",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+        )
+
+        SettingItem(
+            title = "Enable Notifications",
+            description = "Allow Anchor to send reminders and alerts",
+            checked = settings.notificationsEnabled,
+            onCheckedChange = { settingsViewModel.updateNotificationsEnabled(it) }
+        )
     }
 }
 
@@ -181,7 +197,7 @@ private fun ThemeSelector(
     }
 }
 
-// Color blind mode selector — same radio pattern as ThemeSelector.
+// Color-blind mode selector — same radio pattern as ThemeSelector.
 // Labels include a short description so users know what each mode does.
 @Composable
 private fun ColorProfileSelector(

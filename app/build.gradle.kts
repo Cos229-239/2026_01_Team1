@@ -2,13 +2,12 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.devtools.ksp)
 }
 
 android {
     namespace = "edu.fullsail.anchor"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "edu.fullsail.anchor"
@@ -33,8 +32,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        jvmToolchain(11)
     }
     buildFeatures {
         compose = true
@@ -42,12 +41,20 @@ android {
 }
 
 dependencies {
-    implementation("androidx.compose.material:material-icons-extended-android:1.6.7")
+    // ADDED FOR PERSISTENCE — Room runtime and coroutine support
+    implementation("androidx.room:room-runtime:2.8.4")
+    // ADDED FOR PERSISTENCE — Room coroutines / Flow support
+    implementation("androidx.room:room-ktx:2.8.4")
+    // ADDED FOR PERSISTENCE — Room annotation processor
+    ksp("androidx.room:room-compiler:2.8.4")
+    // REQUIRED FOR THEME DATASTORE ← ADD THIS LINE
+    implementation("androidx.datastore:datastore-preferences:1.2.0")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("androidx.navigation:navigation-compose:2.9.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation("androidx.activity:activity-compose:1.12.3")
+    implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)

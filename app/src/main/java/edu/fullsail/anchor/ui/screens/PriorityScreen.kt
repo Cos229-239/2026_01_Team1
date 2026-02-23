@@ -1,6 +1,6 @@
 package edu.fullsail.anchor.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
+import  androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,12 +19,14 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import edu.fullsail.anchor.Task
@@ -37,6 +39,11 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import edu.fullsail.anchor.engagement.badges.Explosion
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.res.painterResource
+import edu.fullsail.anchor.R
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+
 
 @Composable
 fun PriorityScreen(
@@ -47,7 +54,9 @@ fun PriorityScreen(
 ) {
     val allTasks by viewModel.tasks.collectAsState()
     val settings by settingsViewModel.settings.collectAsState()  // Observe settings
+    val context = LocalContext.current
 
+    //prevents showing the same badge toast more than once
     // adding confetti value
     val explosions = remember { mutableStateListOf<Explosion>() }
 
@@ -84,14 +93,26 @@ fun PriorityScreen(
 
         // add explosion at a specific position
         explosions.add(Explosion(id = System.nanoTime(), position = adjustedPosition))
-
-        // badges logic
+    }
+    // badges logic
+    // making this a lunched effect due to issues popping up
+    // this resolved all previous issues.
+    LaunchedEffect(allTasks) {
         val stats = viewModel.buildEngagementStats()
         val (updateBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
             stats = stats,
             existing = badgesViewModel.badges
         )
         badgesViewModel.saveBadges(updateBadges)
+
+        //Toast only for newly unlocked badges
+        newlyUnlocked.forEach { badge ->
+            Toast.makeText(
+                context,
+                "Badge unlocked: ${badge.title}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     // confetti wrapping it all in a box
@@ -116,7 +137,10 @@ fun PriorityScreen(
                     0
                 }
                 PrioritySectionHeader(
-                    title = "⭐ Focus",
+                    title = "Focus",
+                    //Calls the PNG image from the drawable file
+                    iconRes = R.drawable.focus,
+                    iconSize = 30.dp,
                     additionalCount = additionalCount,
                     isExpanded = isFocusExpanded,
                     onToggle = { isFocusExpanded = !isFocusExpanded }
@@ -176,7 +200,9 @@ fun PriorityScreen(
             if (low.isNotEmpty() && !settings.hideLowPriorityInPriorityScreen) {
                 item(key = "header_later") {
                     PrioritySectionHeader(
-                        title = "⏳ Later/Optional",
+                        title = "Later/Optional",
+                        iconRes = R.drawable.hourglass,
+                        iconSize = 18.dp,
                         isExpanded = isLaterExpanded,
                         onToggle = { isLaterExpanded = !isLaterExpanded }
                     )
@@ -212,6 +238,8 @@ fun PriorityScreen(
 @Composable
 private fun PrioritySectionHeader(
     title: String,
+    iconRes: Int? = null,
+    iconSize: Dp = 30.dp,
     additionalCount: Int = 0,
     isExpanded: Boolean,
     onToggle: () -> Unit
@@ -228,10 +256,21 @@ private fun PrioritySectionHeader(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (iconRes != null) {
+            Image(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(iconSize)
+                    .padding(end = 8.dp)
+            )
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge
         )
+
+        Spacer(Modifier.weight(1f))
 
         if (additionalCount > 0) {
             Spacer(Modifier.weight(1f))
@@ -241,8 +280,6 @@ private fun PrioritySectionHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(end = 8.dp)
             )
-        } else {
-            Spacer(Modifier.weight(1f))
         }
 
         Icon(
@@ -297,7 +334,10 @@ private fun PriorityTaskRow(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(vertical = verticalPadding, horizontal = 8.dp)  // Dynamic vertical padding
+                    .padding(
+                        vertical = verticalPadding,
+                        horizontal = 8.dp
+                    )  // Dynamic vertical padding
             ) {
                 Text(
                     text = task.title,

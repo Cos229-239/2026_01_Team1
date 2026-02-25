@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import edu.fullsail.anchor.engagement.badges.BadgeProgressDao
 import edu.fullsail.anchor.engagement.badges.BadgeProgressEntity
 
@@ -13,13 +14,10 @@ import edu.fullsail.anchor.engagement.badges.BadgeProgressEntity
  * Registers TaskEntity and exposes TaskDao.
  * Uses a singleton pattern to avoid multiple database instances.
  *
- * Version starts at 1. If you add columns or tables in future,
- * increment version and add a Migration — do NOT use fallbackToDestructiveMigration
- * in production builds.
- *
- * MODIFIED FOR PERSISTENCE — version bumped to 2, BadgeProgressEntity added.
- * A destructive migration fallback is used here only because badge progress
- * can be safely re-earned. For Task data we would use a proper Migration instead.
+ * Schema history:
+ *   v1 — tasks table
+ *   v2 — badge_progress table added (MIGRATION_1_2)
+ *   v3 — tasks.sortOrder + tasks.subtasksJson added (MIGRATION_2_3)
  */
 @Database(
     entities = [
@@ -27,10 +25,11 @@ import edu.fullsail.anchor.engagement.badges.BadgeProgressEntity
         // REQUIRED FOR ROOM BADGE STORAGE — added BadgeProgressEntity to database
         BadgeProgressEntity::class
     ],
-    // MODIFIED FOR PERSISTENCE — bumped from 1 to 2 for new badge_progress table
-    version = 2,
+    version = 3,
     exportSchema = false
 )
+// ADDED FOR SUBTASK PERSISTENCE — registers JSON converter for List<Subtask>
+@TypeConverters(TaskTypeConverters::class)
 abstract class AnchorDatabase : RoomDatabase() {
 
     // ADDED FOR PERSISTENCE — provides access to task queries
@@ -56,19 +55,42 @@ abstract class AnchorDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AnchorDatabase::class.java,
-                    "anchor_database"  // ADDED FOR PERSISTENCE — database file name on disk
+                    "anchor_database"
                 )
-                    // REQUIRED FOR ROOM BADGE STORAGE
-                    // Destructive migration is acceptable here because badge progress
-                    // can be re-earned. Tasks are unaffected — they live in the same
-                    // file but Room handles table-level migrations independently when
-                    // using fallbackToDestructiveMigration only as a last resort.
-                    // Replace with a real Migration object if preserving task data matters.
-                    .fallbackToDestructiveMigration()
+                    // MODIFIED FOR MIGRATIONS — replaced fallbackToDestructiveMigration() with
+                    // explicit migrations so all task data survives schema upgrades.
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                 INSTANCE = instance
                 instance
             }
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// MIGRATIONS
+// ---------------------------------------------------------------------------
+
+// v1 → v2: creates the badge_progress table
+private val MIGRATION_1_2 = androidx.room.migration.Migration(1, 2) {
+    it.execSQL("""
+        CREATE TABLE IF NOT EXISTS badge_progress (
+            badgeId TEXT NOT NULL PRIMARY KEY,
+            progress INTEGER NOT NULL,
+            unlocked INTEGER NOT NULL,
+            unlockedAtMillis INTEGER,
+            timesEarned INTEGER NOT NULL
+        )
+    """.trimIndent())
+}
+
+// v2 → v3: adds sortOrder and subtasksJson columns to the tasks table.
+//   sortOrder is seeded from each row's rowid so existing tasks keep their
+//   insertion order after the migration — no arbitrary reshuffling.
+//   subtasksJson defaults to '[]' so existing rows parse as having no subtasks.
+private val MIGRATION_2_3 = androidx.room.migration.Migration(2, 3) {
+    it.execSQL("ALTER TABLE tasks ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0")
+    it.execSQL("UPDATE tasks SET sortOrder = rowid")
+    it.execSQL("ALTER TABLE tasks ADD COLUMN subtasksJson TEXT NOT NULL DEFAULT '[]'")
 }

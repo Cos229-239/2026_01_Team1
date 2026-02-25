@@ -15,27 +15,27 @@ class TaskRepository(private val taskDao: TaskDao) {
 
     /**
      * ADDED FOR PERSISTENCE
-     * Live stream of all tasks as domain models.
+     * Live stream of all tasks as domain models, ordered by sortOrder (see TaskDao).
      * The Flow from Room automatically emits a new list whenever the
-     * database changes, which keeps the UI in sync without manual refresh.
+     * database changes, keeping the UI in sync without manual refresh.
      */
     val tasks: Flow<List<Task>> = taskDao.getAllTasks().map { entities ->
-        // ADDED FOR PERSISTENCE — convert each entity to domain Task
         entities.map { it.toDomain() }
     }
 
-    // ADDED FOR PERSISTENCE — inserts a new task into the database
-    suspend fun insertTask(task: Task) {
-        taskDao.insertTask(task.toEntity())
-    }
+    suspend fun insertTask(task: Task) = taskDao.insertTask(task.toEntity())
+    suspend fun updateTask(task: Task) = taskDao.updateTask(task.toEntity())
+    suspend fun deleteTask(task: Task) = taskDao.deleteTask(task.toEntity())
 
-    // ADDED FOR PERSISTENCE — updates an existing task in the database
-    suspend fun updateTask(task: Task) {
-        taskDao.updateTask(task.toEntity())
-    }
-
-    // ADDED FOR PERSISTENCE — deletes a task from the database by its entity representation
-    suspend fun deleteTask(task: Task) {
-        taskDao.deleteTask(task.toEntity())
+    /**
+     * ADDED FOR DRAG & DROP REORDERING
+     * Persists a new task order to Room after a drag-and-drop gesture completes.
+     * [orderedTasks] is the full active (non-completed) task list in the user's
+     * desired order. Each task receives a sequential sortOrder (0, 1, 2, ...).
+     */
+    suspend fun reorderTasks(orderedTasks: List<Task>) {
+        orderedTasks.forEachIndexed { index, task ->
+            taskDao.updateSortOrder(task.id, index)
+        }
     }
 }

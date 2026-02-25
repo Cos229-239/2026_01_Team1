@@ -41,6 +41,7 @@ android {
 }
 
 dependencies {
+    implementation("sh.calvin.reorderable:reorderable:3.0.0")
     // ADDED FOR PERSISTENCE — Room runtime and coroutine support
     implementation("androidx.room:room-runtime:2.8.4")
     // ADDED FOR PERSISTENCE — Room coroutines / Flow support

@@ -17,19 +17,22 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TaskDao {
 
-    // ADDED FOR PERSISTENCE — returns a live stream of all tasks, ordered by insertion
-    @Query("SELECT * FROM tasks")
+    // MODIFIED FOR DRAG & DROP — now orders by sortOrder ASC so user-reordered tasks
+    // appear in the correct sequence. New tasks with sortOrder = Int.MAX_VALUE appear last.
+    @Query("SELECT * FROM tasks ORDER BY sortOrder ASC")
     fun getAllTasks(): Flow<List<TaskEntity>>
 
-    // ADDED FOR PERSISTENCE — inserts a new task; replaces on conflict (handles upsert for updates)
     @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     suspend fun insertTask(task: TaskEntity)
 
-    // ADDED FOR PERSISTENCE — updates an existing task matched by primary key (id)
     @Update
     suspend fun updateTask(task: TaskEntity)
 
-    // ADDED FOR PERSISTENCE — deletes a task matched by primary key (id)
     @Delete
     suspend fun deleteTask(task: TaskEntity)
+
+    // ADDED FOR DRAG & DROP REORDERING — updates sortOrder for one task by id.
+    // Called in a loop from TaskRepository.reorderTasks() after a drag gesture completes.
+    @Query("UPDATE tasks SET sortOrder = :sortOrder WHERE id = :id")
+    suspend fun updateSortOrder(id: String, sortOrder: Int)
 }

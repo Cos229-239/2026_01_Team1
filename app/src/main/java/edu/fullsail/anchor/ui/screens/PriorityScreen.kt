@@ -48,7 +48,7 @@ import androidx.compose.ui.platform.LocalContext
 @Composable
 fun PriorityScreen(
     navController: NavController,
-    viewModel: TaskViewModel = viewModel(),
+    viewModel: TaskViewModel,
     badgesViewModel: BadgesViewModel,
     settingsViewModel: edu.fullsail.anchor.SettingsViewModel  // Receive settings
 ) {

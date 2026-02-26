@@ -33,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import edu.fullsail.anchor.R
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.delay
 
 // =============================================================================
 // PRIORITY SCREEN
@@ -345,6 +346,9 @@ private fun PriorityTaskRow(
                 if (task.dueDate.isNotBlank()) {
                     Spacer(Modifier.height(4.dp))
                     Text(text = task.dueDate, style = MaterialTheme.typography.bodySmall)
+
+                    // Adding the countdown timer here
+                    TaskCountdown(dueDateMillis = task.dueDateMillis)
                 }
             }
 
@@ -413,6 +417,50 @@ private fun PriorityTaskRow(
             dismissButton    = {
                 TextButton(onClick = { showEditDialog = false }) { Text("Cancel") }
             }
+        )
+    }
+}
+
+// Countdown Timer
+@Composable
+fun TaskCountdown(dueDateMillis: Long?) {
+    if (dueDateMillis == null)
+        return
+    // going to make it recalculate every 1 second
+    var remainingTime by remember { mutableStateOf(dueDateMillis - System.currentTimeMillis()) }
+
+    LaunchedEffect(key1 = dueDateMillis) {
+        while (remainingTime > 0) {
+            delay(1000L)
+            remainingTime = dueDateMillis - System.currentTimeMillis()
+        }
+    }
+    // going to make it show days hours minutes and seconds.
+    if (remainingTime > 0) {
+        val seconds = (remainingTime / 1000) % 60
+        val minutes = (remainingTime / (1000 * 60)) % 60
+        val hours = (remainingTime / (1000 * 60 * 60)) % 24
+        val days = (remainingTime / (1000 * 60 * 60 * 24))
+    // this is the time string showing days hours minutes and seconds.
+    // gonna add something for once the timer runs out.
+        val timeString = buildString {
+            if (days > 0) append("${days}d ")
+            if (hours > 0 || days > 0) append("${hours}h ")
+            append("${minutes}m ${seconds}s")
+        }
+
+        Text(
+            text = "Ends in: $timeString",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error, // putting in red to create urgency
+            fontWeight = FontWeight.Bold
+        )
+    } else {
+        // once the timer runs out show "overdue!"
+        Text(
+            text = "Overdue!",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error
         )
     }
 }

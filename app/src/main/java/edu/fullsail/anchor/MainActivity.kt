@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 var showSplash by remember { mutableStateOf(true) }
                 LaunchedEffect(Unit) {
-                    delay(3000) // 3 seconds
+                    delay(3000) // 3 second splash screen
                     showSplash = false
                 }
                 if (showSplash) {
@@ -204,6 +204,8 @@ fun AppNavigation(settingsViewModel: SettingsViewModel) {
     ) { innerPadding ->
         NavHost(
             navController    = navController,
+            // Made the start destination priority screen since this was what we agreed to be our home screen.
+            // so after the splash screen runs for 3 seconds the priority screen opens.
             startDestination = "priority_screen",
             modifier         = Modifier.padding(innerPadding)
         ) {
@@ -834,6 +836,8 @@ fun TaskItem(
 // --- Splash Screen ---
 @Composable
 fun SplashScreen() {
+    // Tried to keep splashscreen as simple as possible.
+    // Also, stuck with the quote we had created on Figma.
     Surface(
         modifier = Modifier.fillMaxSize(),
         color    = MaterialTheme.colorScheme.background

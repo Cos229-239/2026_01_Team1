@@ -11,7 +11,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import edu.fullsail.anchor.SettingsViewModel
 
-// Settings screen UI with toggle switches
+// =============================================================================
+// SETTINGS SCREEN
+// A scrollable list of all user-configurable preferences. Organized into sections:
+//   - Task Behavior  (confirm delete, compact mode)
+//   - Focus Mode     (limit Focus section to 3 tasks)
+//   - Task Defaults  (default timeframe and priority for new tasks)
+//   - Priority Screen (hide low-priority tasks)
+//   - Theme          (System/Light/Dark)           [not this developer's code]
+//   - Accessibility  (color vision profiles)       [not this developer's code]
+//   - Notifications  (enable/disable reminders)
+// =============================================================================
 @Composable
 fun SettingsScreen(
     settingsViewModel: SettingsViewModel
@@ -25,145 +35,156 @@ fun SettingsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+
+        // --- Task Behavior ---
+        // Controls how tasks behave when the user takes destructive or display actions.
         Text(
-            text = "Task Behavior",
-            style = MaterialTheme.typography.titleMedium,
+            text     = "Task Behavior",
+            style    = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        // Confirm before deleting
+        // When ON, deleting a task opens a confirmation dialog before it is removed.
+        // When OFF, the task is deleted immediately without prompting.
         SettingItem(
-            title = "Confirm before deleting",
-            description = "Show confirmation dialog when deleting tasks",
-            checked = settings.confirmBeforeDeleting,
+            title          = "Confirm before deleting",
+            description    = "Show confirmation dialog when deleting tasks",
+            checked        = settings.confirmBeforeDeleting,
             onCheckedChange = { settingsViewModel.updateConfirmBeforeDeleting(it) }
         )
 
         Divider()
 
-        // Compact Mode
+        // When ON, task card padding is reduced so more items fit on screen at once.
         SettingItem(
-            title = "Compact Mode",
-            description = "Reduce spacing in task rows to fit more on screen",
-            checked = settings.compactMode,
+            title          = "Compact Mode",
+            description    = "Reduce spacing in task rows to fit more on screen",
+            checked        = settings.compactMode,
             onCheckedChange = { settingsViewModel.updateCompactMode(it) }
         )
 
         Divider()
 
+        // --- Focus Mode ---
+        // Controls how many tasks appear in the Focus (High Priority) section of the Priority screen.
         Text(
-            text = "Focus Mode",
-            style = MaterialTheme.typography.titleMedium,
+            text     = "Focus Mode",
+            style    = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
         )
 
-        // Limit Focus Tasks to 3
+        // When ON, only the first 3 high-priority tasks are shown in the Focus section.
+        // A "+N additional tasks" label in the section header tells the user how many are hidden.
         SettingItem(
-            title = "Limit Focus Tasks to 3",
-            description = "Show only the first 3 high-priority tasks in Focus section",
-            checked = settings.limitFocusToThree,
+            title          = "Limit Focus Tasks to 3",
+            description    = "Show only the first 3 high-priority tasks in Focus section",
+            checked        = settings.limitFocusToThree,
             onCheckedChange = { settingsViewModel.updateLimitFocusToThree(it) }
         )
 
         Divider()
 
-        // New Settings Section
+        // --- Task Defaults ---
+        // Pre-selects values in the Create Task screen so users don't have to set them every time.
         Text(
-            text = "Task Defaults",
-            style = MaterialTheme.typography.titleMedium,
+            text     = "Task Defaults",
+            style    = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
         )
 
-        // Default Timeframe
+        // Sets which timeframe radio button is pre-selected when opening the Create Task screen.
         DropdownSettingItem(
-            title = "Default Timeframe",
-            description = "Timeframe preset when creating new tasks",
-            options = listOf("Daily", "Weekly", "Monthly", "Yearly"),
+            title         = "Default Timeframe",
+            description   = "Timeframe preset when creating new tasks",
+            options       = listOf("Daily", "Weekly", "Monthly", "Yearly"),
             selectedValue = settings.defaultTimeframe,
             onValueChange = { settingsViewModel.updateDefaultTimeframe(it) }
         )
 
         Divider()
 
-        // Default Priority
+        // Sets which priority radio button is pre-selected when opening the Create Task screen.
         DropdownSettingItem(
-            title = "Default Priority",
-            description = "Priority preset when creating new tasks",
-            options = listOf("High", "Medium", "Low"),
+            title         = "Default Priority",
+            description   = "Priority preset when creating new tasks",
+            options       = listOf("High", "Medium", "Low"),
             selectedValue = settings.defaultPriority,
             onValueChange = { settingsViewModel.updateDefaultPriority(it) }
         )
 
         Divider()
 
+        // --- Priority Screen ---
+        // Controls what the Priority screen displays.
         Text(
-            text = "Priority Screen",
-            style = MaterialTheme.typography.titleMedium,
+            text     = "Priority Screen",
+            style    = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
         )
 
-        // Hide Low Priority Tasks
+        // When ON, the Later/Optional (Low Priority) section is hidden from the Priority screen
+        // so users can focus on high and medium priority work without distraction.
         SettingItem(
-            title = "Hide Low Priority Tasks",
-            description = "Don't show low priority tasks in Priority screen",
-            checked = settings.hideLowPriorityInPriorityScreen,
+            title          = "Hide Low Priority Tasks",
+            description    = "Don't show low priority tasks in Priority screen",
+            checked        = settings.hideLowPriorityInPriorityScreen,
             onCheckedChange = { settingsViewModel.updateHideLowPriorityInPriorityScreen(it) }
         )
 
         Divider()
 
-        // Theme section
+        // --- Theme --- (implemented by separate team member)
         Text(
-            text = "Theme",
-            style = MaterialTheme.typography.titleMedium,
+            text     = "Theme",
+            style    = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
         )
 
         ThemeSelector(
-            selectedMode = settings.themeMode,
+            selectedMode   = settings.themeMode,
             onModeSelected = { settingsViewModel.setThemeMode(it) }
         )
 
         Divider()
 
-        // Accessibility section
+        // --- Accessibility --- (implemented by separate team member)
         Text(
-            text = "Accessibility",
-            style = MaterialTheme.typography.titleMedium,
+            text     = "Accessibility",
+            style    = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
         )
         Text(
-            text = "Color vision adjustment",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text     = "Color vision adjustment",
+            style    = MaterialTheme.typography.bodySmall,
+            color    = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
         ColorProfileSelector(
-            selectedProfile = settings.colorProfile,
+            selectedProfile   = settings.colorProfile,
             onProfileSelected = { settingsViewModel.setColorProfile(it) }
         )
 
-        Divider ()
+        Divider()
 
-        //Notification section
+        // --- Notifications ---
+        // Controls whether the app is permitted to send task reminder notifications.
         Text(
-            text = "Notifications",
-            style = MaterialTheme.typography.titleMedium,
+            text     = "Notifications",
+            style    = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
         )
 
         SettingItem(
-            title = "Enable Notifications",
-            description = "Allow Anchor to send reminders and alerts",
-            checked = settings.notificationsEnabled,
+            title          = "Enable Notifications",
+            description    = "Allow Anchor to send reminders and alerts",
+            checked        = settings.notificationsEnabled,
             onCheckedChange = { settingsViewModel.updateNotificationsEnabled(it) }
         )
     }
 }
 
-// Theme radio button selector
-// Options kept in a list so Color Blind Mode variants can be added in the same pattern later.
+// Theme radio button selector — implemented by separate team member
 @Composable
 private fun ThemeSelector(
     selectedMode: String,
@@ -178,18 +199,18 @@ private fun ThemeSelector(
                     .fillMaxWidth()
                     .selectable(
                         selected = (selectedMode == option),
-                        onClick = { onModeSelected(option) }
+                        onClick  = { onModeSelected(option) }
                     )
                     .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 RadioButton(
                     selected = (selectedMode == option),
-                    onClick = null  // handled by Row selectable
+                    onClick  = null  // click handled by the Row's selectable modifier
                 )
                 Text(
-                    text = option,
-                    style = MaterialTheme.typography.bodyLarge,
+                    text     = option,
+                    style    = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }
@@ -197,8 +218,7 @@ private fun ThemeSelector(
     }
 }
 
-// Color-blind mode selector — same radio pattern as ThemeSelector.
-// Labels include a short description so users know what each mode does.
+// Color-blind mode selector — implemented by separate team member
 @Composable
 private fun ColorProfileSelector(
     selectedProfile: String,
@@ -207,10 +227,10 @@ private fun ColorProfileSelector(
     data class ProfileOption(val value: String, val label: String, val description: String)
 
     val options = listOf(
-        ProfileOption("Default",       "Default",       "Standard color palette"),
-        ProfileOption("Deuteranopia",  "Deuteranopia",  "Red-green (green-weak)"),
-        ProfileOption("Protanopia",    "Protanopia",    "Red-green (red-weak)"),
-        ProfileOption("Tritanopia",    "Tritanopia",    "Blue-yellow weakness")
+        ProfileOption("Default",      "Default",      "Standard color palette"),
+        ProfileOption("Deuteranopia", "Deuteranopia", "Red-green (green-weak)"),
+        ProfileOption("Protanopia",   "Protanopia",   "Red-green (red-weak)"),
+        ProfileOption("Tritanopia",   "Tritanopia",   "Blue-yellow weakness")
     )
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -220,22 +240,19 @@ private fun ColorProfileSelector(
                     .fillMaxWidth()
                     .selectable(
                         selected = (selectedProfile == option.value),
-                        onClick = { onProfileSelected(option.value) }
+                        onClick  = { onProfileSelected(option.value) }
                     )
                     .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 RadioButton(
                     selected = (selectedProfile == option.value),
-                    onClick = null  // handled by Row selectable
+                    onClick  = null  // click handled by the Row's selectable modifier
                 )
                 Column(modifier = Modifier.padding(start = 8.dp)) {
+                    Text(text = option.label, style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        text = option.label,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        text = option.description,
+                        text  = option.description,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -245,7 +262,11 @@ private fun ColorProfileSelector(
     }
 }
 
-// Reusable setting item with switch
+// =============================================================================
+// SETTING ITEM
+// Reusable row composable that pairs a title + description label on the left
+// with a toggle Switch on the right. Used for all boolean settings.
+// =============================================================================
 @Composable
 private fun SettingItem(
     title: String,
@@ -254,33 +275,28 @@ private fun SettingItem(
     onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
+        modifier              = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment     = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge)
             Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Text(
-                text = description,
+                text  = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange
-        )
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
-// Reusable dropdown setting item
+// =============================================================================
+// DROPDOWN SETTING ITEM
+// Reusable row composable that pairs a title + description label on the left
+// with a dropdown OutlinedButton on the right. Used for settings that have a
+// fixed list of string options (e.g. Default Timeframe, Default Priority).
+// =============================================================================
 @Composable
 private fun DropdownSettingItem(
     title: String,
@@ -292,44 +308,35 @@ private fun DropdownSettingItem(
     var expanded by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier              = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment     = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = description,
+                    text  = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
+            // Button shows the currently selected value and opens the dropdown on tap
             Box {
                 OutlinedButton(onClick = { expanded = true }) {
                     Text(selectedValue)
                 }
                 DropdownMenu(
-                    expanded = expanded,
+                    expanded         = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
                     options.forEach { option ->
                         DropdownMenuItem(
-                            text = { Text(option) },
-                            onClick = {
-                                onValueChange(option)
-                                expanded = false
-                            }
+                            text    = { Text(option) },
+                            onClick = { onValueChange(option); expanded = false }
                         )
                     }
                 }

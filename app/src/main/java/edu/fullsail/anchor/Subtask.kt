@@ -3,16 +3,24 @@ package edu.fullsail.anchor
 import java.util.UUID
 
 /**
- * Lightweight subtask model for inline task checklists.
+ * Lightweight model for a single checklist item within a parent task.
  *
- * Stored as JSON inside the parent TaskEntity row (subtasksJson column) via
- * TaskTypeConverters — no separate table needed.
+ * Subtasks are stored as a JSON array inside the parent TaskEntity's subtasksJson
+ * column (serialized by TaskTypeConverters) — no separate database table is needed.
  *
- * Owned by parent Task: deleting a task deletes all its subtasks.
- * The UI suggests completing the parent when all subtasks are done, but does not force it.
+ * Ownership: a subtask belongs to its parent task. Deleting the parent task also
+ * removes all of its subtasks automatically.
+ *
+ * The UI suggests completing the parent task when all subtasks are done,
+ * but does not force it — the user decides.
  */
 data class Subtask(
+    // Unique identifier generated automatically at creation time
     val id: String = UUID.randomUUID().toString(),
+
+    // The subtask description entered by the user
     val title: String,
+
+    // True when the user has checked this subtask off
     val isDone: Boolean = false
 )

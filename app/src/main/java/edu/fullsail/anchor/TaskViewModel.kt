@@ -115,10 +115,24 @@ class TaskViewModel(
 
     fun getTaskById(taskId: String): Task? = tasks.value.find { it.id == taskId }
 
-    fun addTask(title: String, dueDateMillis: Long?, priority: String, timeframe: String): Boolean {
+    /**
+     * Creates and persists a new task. Returns false (without saving) if the title is blank.
+     * New tasks receive Int.MAX_VALUE as their sortOrder so they always appear at the bottom
+     * of the list until the user reorders them.
+     *
+     * [subtasks] is optional — passing a pre-built list from CreateTaskScreen saves the user
+     * from having to expand the task card and add subtasks as a second step after creation.
+     */
+    fun addTask(
+        title: String,
+        dueDateMillis: Long?,
+        priority: String,
+        timeframe: String,
+        subtasks: List<Subtask> = emptyList()   // ADDED FOR CREATE-SCREEN SUBTASKS
+    ): Boolean {
         if (title.isBlank()) return false
-        // ADDED FOR DRAG & DROP — new tasks get Int.MAX_VALUE so they appear at the end of the list.
-        // Real indices are assigned after the first reorder.
+        // New tasks get Int.MAX_VALUE so they appear at the bottom of the list.
+        // Real indices (0, 1, 2, ...) are assigned after the first drag-and-drop reorder.
         val newTask = Task(
             id            = UUID.randomUUID().toString(),
             title         = title,
@@ -126,18 +140,28 @@ class TaskViewModel(
             priority      = priority,
             timeframe     = timeframe,
             isCompleted   = false,
-            sortOrder     = Int.MAX_VALUE
+            sortOrder     = Int.MAX_VALUE,
+            subtasks      = subtasks            // ADDED FOR CREATE-SCREEN SUBTASKS
         )
         viewModelScope.launch { repository.insertTask(newTask) }
         return true
     }
 
+    /**
+     * Updates the editable fields of an existing task. Returns false if the title is blank.
+     * Preserves isCompleted, completedAtMillis, and sortOrder from the existing record.
+     *
+     * [subtasks] replaces the task's entire subtask list. Passing the list from
+     * CreateTaskScreen means the user can add, remove, or reorder subtasks while editing
+     * without needing to open the inline checklist on the task card afterward.
+     */
     fun updateTask(
         id: String,
         title: String,
         dueDateMillis: Long?,
         priority: String,
-        timeframe: String
+        timeframe: String,
+        subtasks: List<Subtask>? = null         // ADDED FOR CREATE-SCREEN SUBTASKS
     ): Boolean {
         if (title.isBlank()) return false
         val existing = tasks.value.find { it.id == id } ?: return false
@@ -147,7 +171,10 @@ class TaskViewModel(
                     title         = title,
                     dueDateMillis = dueDateMillis,
                     priority      = priority,
-                    timeframe     = timeframe
+                    timeframe     = timeframe,
+                    // If the caller passes a subtask list, use it; otherwise keep existing subtasks.
+                    // This preserves inline-checklist changes made outside the edit screen.
+                    subtasks      = subtasks ?: existing.subtasks   // ADDED FOR CREATE-SCREEN SUBTASKS
                 )
             )
         }

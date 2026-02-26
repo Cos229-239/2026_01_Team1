@@ -879,6 +879,16 @@ fun CreateTaskScreen(
     var showDatePicker   by remember { mutableStateOf(false) }
     var showTimePicker   by remember { mutableStateOf(false) }
 
+    // ADDED FOR CREATE-SCREEN SUBTASKS
+    // Pre-populate with the task's existing subtasks when editing; empty list for new tasks.
+    // mutableStateListOf keeps the list observable so adding/removing items triggers recomposition.
+    val subtaskList = remember {
+        mutableStateListOf<Subtask>().also { list ->
+            taskToEdit?.subtasks?.let { list.addAll(it) }
+        }
+    }
+    var newSubtaskTitle by remember { mutableStateOf("") }
+
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dueDateMillis)
     val timePickerState = rememberTimePickerState(
         initialHour = dueDateMillis?.let {
@@ -1024,14 +1034,94 @@ fun CreateTaskScreen(
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ---- Subtasks section ----
+            // ADDED FOR CREATE-SCREEN SUBTASKS
+            // Lets the user build a subtask checklist before saving the task.
+            // Subtasks added here are saved together with the task in a single Room write,
+            // so there is no need to open the task card afterward to add them.
+            Text(text = "Subtasks", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Display each pending subtask with a remove (X) button on the right
+            subtaskList.forEach { subtask ->
+                Row(
+                    modifier          = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text     = "•",
+                        modifier = Modifier.padding(start = 4.dp, end = 8.dp),
+                        color    = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text     = subtask.title,
+                        modifier = Modifier.weight(1f),
+                        style    = MaterialTheme.typography.bodyMedium
+                    )
+                    // Tapping X removes the subtask from the in-memory list.
+                    // If editing, the removal is persisted when the user taps Save/Update.
+                    IconButton(
+                        onClick  = { subtaskList.remove(subtask) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Remove subtask",
+                            modifier           = Modifier.size(16.dp),
+                            tint               = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            }
+
+            // "Add subtask" input row — pressing Done on the keyboard or the + button
+            // appends a new Subtask to subtaskList; blank entries are silently ignored.
+            Row(
+                modifier          = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value           = newSubtaskTitle,
+                    onValueChange   = { newSubtaskTitle = it },
+                    placeholder     = { Text("Add a subtask...") },
+                    modifier        = Modifier.weight(1f),
+                    singleLine      = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = {
+                        if (newSubtaskTitle.isNotBlank()) {
+                            subtaskList.add(Subtask(title = newSubtaskTitle.trim()))
+                            newSubtaskTitle = ""
+                        }
+                    })
+                )
+                IconButton(
+                    onClick = {
+                        if (newSubtaskTitle.isNotBlank()) {
+                            subtaskList.add(Subtask(title = newSubtaskTitle.trim()))
+                            newSubtaskTitle = ""
+                        }
+                    }
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add subtask")
+                }
+            }
+
             Spacer(modifier = Modifier.weight(1f))
-            // -------------- SAVE BUTTON ------------
+
+            // Save / Update button — validates that the title is not blank before saving.
+            // Passes the subtask list along so all subtasks are persisted in one Room write.
             Button(
                 onClick = {
                     val success = if (isEditing) {
-                        taskViewModel.updateTask(taskId!!, titleInput, dueDateMillis, selectedPriority, selectedTimeframe)
+                        taskViewModel.updateTask(taskId!!, titleInput, dueDateMillis, selectedPriority, selectedTimeframe, subtaskList.toList())
                     } else {
-                        taskViewModel.addTask(titleInput, dueDateMillis, selectedPriority, selectedTimeframe)
+                        taskViewModel.addTask(titleInput, dueDateMillis, selectedPriority, selectedTimeframe, subtaskList.toList())
                     }
                     if (success) {
                         navController.popBackStack()

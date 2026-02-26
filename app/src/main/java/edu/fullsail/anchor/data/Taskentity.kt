@@ -8,47 +8,58 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * ADDED FOR PERSISTENCE
- * Room entity that mirrors the Task domain model field-for-field.
- * The original Task class is NOT removed — this is the database layer only.
- * Mapper functions at the bottom convert between the two representations.
+ * Room database entity for the "tasks" table.
  *
- * Schema v3 changes (MIGRATION_2_3):
- *   sortOrder    INTEGER NOT NULL DEFAULT 0    — for drag & drop reordering
- *   subtasksJson TEXT    NOT NULL DEFAULT '[]' — for inline subtask checklists
+ * This class mirrors the Task domain model field-for-field but exists as a separate
+ * class so the rest of the app remains unaware of the database layer. All conversion
+ * between TaskEntity and Task happens through the mapper functions at the bottom of
+ * this file (toDomain() and toEntity()).
+ *
+ * Schema history:
+ *   v1 — id, title, dueDateMillis, priority, timeframe, isCompleted, completedAtMillis
+ *   v3 — sortOrder (MIGRATION_2_3), subtasksJson (MIGRATION_2_3)
  */
 @Entity(tableName = "tasks")
 data class TaskEntity(
-    // ADDED FOR PERSISTENCE — matches Task.id (UUID string)
+    // UUID string — matches Task.id, serves as the Room primary key
     @PrimaryKey
     val id: String,
 
-    // ADDED FOR PERSISTENCE — matches Task.title
     val title: String,
 
-    // ADDED FOR PERSISTENCE — matches Task.dueDateMillis (nullable Long)
+    // Nullable epoch millis — null means the task has no due date
     val dueDateMillis: Long?,
 
-    // ADDED FOR PERSISTENCE — matches Task.priority
+    // "High", "Medium", or "Low"
     val priority: String,
 
-    // ADDED FOR PERSISTENCE — matches Task.timeframe
+    // "Daily", "Weekly", "Monthly", or "Yearly"
     val timeframe: String,
 
-    // ADDED FOR PERSISTENCE — matches Task.isCompleted
     val isCompleted: Boolean,
 
-    // ADDED FOR PERSISTENCE — matches Task.completedAtMillis
-    // Timestamp used for streak + daily badge calculation (do not remove without updating badge logic)
+    // Epoch millis when the task was completed; null when active or unchecked.
+    // Used for streak and badge calculations — do not remove without updating badge logic.
     val completedAtMillis: Long?,
-    // ADDED FOR DRAG & DROP — seeded from rowid in MIGRATION_2_3 so existing tasks keep their order
+
+    // Position index for drag-and-drop ordering. Seeded from rowid in MIGRATION_2_3
+    // so existing tasks keep their insertion order after the schema upgrade.
     val sortOrder: Int = 0,
-    // ADDED FOR SUBTASKS — JSON-serialised List<Subtask>; defaults to empty array
+
+    // JSON-serialised List<Subtask>. Defaults to "[]" so existing rows before v3
+    // have no subtasks rather than a null parse error.
     val subtasksJson: String = "[]"
 )
 
-// ADDED FOR PERSISTENCE
-// Converts a Room entity to the domain Task model used by the UI and ViewModels
+// =============================================================================
+// MAPPER FUNCTIONS
+// Convert between the storage model (TaskEntity) and the domain model (Task).
+// These are extension functions so they read naturally at the call site:
+//   entity.toDomain()   — used in TaskRepository when reading from Room
+//   task.toEntity()     — used in TaskRepository when writing to Room
+// =============================================================================
+
+/** Converts a Room entity to the domain Task model used by the UI and ViewModels. */
 fun TaskEntity.toDomain(): Task = Task(
     id                = id,
     title             = title,
@@ -61,8 +72,7 @@ fun TaskEntity.toDomain(): Task = Task(
     subtasks          = parseSubtasksJson(subtasksJson)
 )
 
-// ADDED FOR PERSISTENCE
-// Converts a domain Task model to a Room entity for database storage
+/** Converts a domain Task model to a Room entity ready for database storage. */
 fun Task.toEntity(): TaskEntity = TaskEntity(
     id                = id,
     title             = title,
@@ -75,7 +85,13 @@ fun Task.toEntity(): TaskEntity = TaskEntity(
     subtasksJson      = serializeSubtasksJson(subtasks)
 )
 
-// Inline JSON helpers — mirror TaskTypeConverters so mappers are self-contained
+// =============================================================================
+// JSON HELPERS
+// These functions mirror the logic in TaskTypeConverters so the mapper functions
+// above are self-contained and don't depend on Room's @TypeConverters at the
+// entity mapping layer.
+// =============================================================================
+
 private fun serializeSubtasksJson(subtasks: List<Subtask>): String {
     val array = JSONArray()
     subtasks.forEach { s ->
@@ -100,5 +116,7 @@ private fun parseSubtasksJson(json: String): List<Subtask> {
                 isDone = obj.getBoolean("isDone")
             )
         }
-    } catch (e: Exception) { emptyList() }
+    } catch (e: Exception) {
+        emptyList() // Return empty list rather than crashing if JSON is malformed
+    }
 }

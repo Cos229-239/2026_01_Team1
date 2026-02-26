@@ -55,6 +55,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 import edu.fullsail.anchor.engagement.badges.BadgesViewModel
 import edu.fullsail.anchor.engagement.badges.BadgeRuleEngine
+//REQUIRED FOR NOTIFICATION PERMISSION
+import android.os.Build
+import android.content.pm.PackageManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -62,6 +65,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         //Initializes notification channel
         createAnchorNotificationChannel(this)
+        //Requests POST_NOTIFICATIONS permission (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 0)
+            }
+        }
         enableEdgeToEdge()
         setContent {
             // Hoist settingsViewModel here so theme reacts to changes immediately.
@@ -124,7 +134,8 @@ fun AppNavigation(settingsViewModel: SettingsViewModel) {
     }
 
     // ADDED FOR PERSISTENCE — factory needed because TaskViewModel now has a constructor param
-    val taskViewModelFactory = remember { TaskViewModelFactory(taskRepository) }
+    val taskViewModelFactory = remember { TaskViewModelFactory(repository = taskRepository, appContext = context.applicationContext,
+        settingsViewModel = settingsViewModel) }
 
     // MODIFIED FOR PERSISTENCE — pass the factory so the ViewModel receives the repository
     // Previously: val taskViewModel: TaskViewModel = viewModel()

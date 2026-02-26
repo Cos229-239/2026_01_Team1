@@ -1,5 +1,6 @@
 package edu.fullsail.anchor
 
+import android.content.Context
 import java.util.Calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -13,6 +14,7 @@ import edu.fullsail.anchor.data.TaskRepository
 import kotlinx.coroutines.flow.SharingStarted
 // ADDED FOR PERSISTENCE
 import kotlinx.coroutines.flow.stateIn
+import edu.fullsail.anchor.notifications.sendTaskCreatedNotification
 
 // MODIFIED FOR PERSISTENCE
 // Constructor now accepts a TaskRepository instead of holding data in-memory.
@@ -20,7 +22,7 @@ import kotlinx.coroutines.flow.stateIn
 // with parameters cannot be created by the default ViewModelProvider.
 class TaskViewModel(
     // ADDED FOR PERSISTENCE — injected repository replaces the in-memory list
-    private val repository: TaskRepository
+    private val repository: TaskRepository, private val appContext: Context, private val settingsViewModel: SettingsViewModel
 ) : ViewModel() {
 
     // MODIFIED FOR PERSISTENCE
@@ -146,6 +148,10 @@ class TaskViewModel(
         // ADDED FOR PERSISTENCE
         viewModelScope.launch {
             repository.insertTask(newTask)
+
+            if (settingsViewModel.settings.value.notificationsEnabled) {
+                sendTaskCreatedNotification(appContext, newTask.title)
+            }
         }
         return true
     }
@@ -189,13 +195,13 @@ class TaskViewModel(
  */
 class TaskViewModelFactory(
     // ADDED FOR PERSISTENCE
-    private val repository: TaskRepository
+    private val repository: TaskRepository, private val appContext: Context, private val settingsViewModel: SettingsViewModel
 ) : ViewModelProvider.Factory {
     // ADDED FOR PERSISTENCE
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(TaskViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return TaskViewModel(repository) as T
+            return TaskViewModel(repository, appContext, settingsViewModel) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

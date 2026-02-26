@@ -95,8 +95,8 @@ fun SettingsScreen(
         // Sets which timeframe radio button is pre-selected when opening the Create Task screen.
         DropdownSettingItem(
             title         = "Default Timeframe",
-            description   = "Timeframe preset when creating new tasks",
-            options       = listOf("Daily", "Weekly", "Monthly", "Yearly"),
+            description   = "Preset for new tasks — None leaves timeframe unassigned",
+            options       = listOf("None", "Daily", "Weekly", "Monthly", "Yearly"),
             selectedValue = settings.defaultTimeframe,
             onValueChange = { settingsViewModel.updateDefaultTimeframe(it) }
         )
@@ -106,10 +106,29 @@ fun SettingsScreen(
         // Sets which priority radio button is pre-selected when opening the Create Task screen.
         DropdownSettingItem(
             title         = "Default Priority",
-            description   = "Priority preset when creating new tasks",
-            options       = listOf("High", "Medium", "Low"),
+            description   = "Preset for new tasks — None leaves priority unassigned",
+            options       = listOf("None", "High", "Medium", "Low"),
             selectedValue = settings.defaultPriority,
             onValueChange = { settingsViewModel.updateDefaultPriority(it) }
+        )
+
+        Divider()
+
+        // --- Smart Sorting ---
+        // Controls the order in which active tasks appear within their sections on the Tasks screen.
+        // "Manual" preserves drag-and-drop order; other modes apply automatic sorting.
+        Text(
+            text     = "Smart Sorting",
+            style    = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+        )
+
+        DropdownSettingItem(
+            title         = "Sort Tasks By",
+            description   = "Manual preserves your drag-and-drop order",
+            options       = listOf("Manual", "By Priority", "By Due Date", "Soonest First"),
+            selectedValue = settings.sortMode,
+            onValueChange = { settingsViewModel.updateSortMode(it) }
         )
 
         Divider()

@@ -32,6 +32,8 @@ data class Particle(
 @Composable
 fun ConfettiOverlay(
     explosions: List<Explosion>, // changing to a list
+    // because the animation needs to complete to be able to click rapidly.
+    // with a list this makes it so there are more than 1 animation and you can click fast
     onBurstFinished: (Long) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -58,6 +60,7 @@ private fun ConfettiBurst(
     var particles by remember { mutableStateOf<List<Particle>>(emptyList()) }
 
     // colors for confetti
+    // tried to stick with colors we wanted and added 2 "fun" colors for "flair"
     val colors = listOf(
         Color(0xFF2F9E97), // teal
         Color(0xFF00E5FF), // cyan
@@ -106,6 +109,7 @@ private fun ConfettiBurst(
                 val alpha = (1f - progress).coerceIn(0f, 1f)
 
                 // this is for the particle animation
+                // made the particles circle confetti
                 withTransform({
                     rotate(
                         degrees = particle.initialAngle + (progress * 360),

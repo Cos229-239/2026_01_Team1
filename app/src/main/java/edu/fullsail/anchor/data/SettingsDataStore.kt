@@ -47,6 +47,9 @@ class SettingsDataStore(private val context: Context) {
 
         // ---- Priority Screen key ----
         val HIDE_LOW_PRIORITY = booleanPreferencesKey("hide_low_priority_in_priority_screen")
+
+        // ---- Smart Sorting key ----
+        val SORT_MODE = stringPreferencesKey("sort_mode")
     }
 
     // ---- Read Flows ----
@@ -57,9 +60,11 @@ class SettingsDataStore(private val context: Context) {
     val confirmBeforeDeletingFlow: Flow<Boolean> = context.dataStore.data.map { it[CONFIRM_BEFORE_DELETING] ?: true }
     val compactModeFlow: Flow<Boolean>       = context.dataStore.data.map { it[COMPACT_MODE]             ?: false }
     val limitFocusToThreeFlow: Flow<Boolean> = context.dataStore.data.map { it[LIMIT_FOCUS_TO_THREE]     ?: true }
-    val defaultTimeframeFlow: Flow<String>   = context.dataStore.data.map { it[DEFAULT_TIMEFRAME]        ?: "Daily" }
-    val defaultPriorityFlow: Flow<String>    = context.dataStore.data.map { it[DEFAULT_PRIORITY]         ?: "Medium" }
+    val defaultTimeframeFlow: Flow<String>   = context.dataStore.data.map { it[DEFAULT_TIMEFRAME]        ?: "None" }
+    val defaultPriorityFlow: Flow<String>    = context.dataStore.data.map { it[DEFAULT_PRIORITY]         ?: "None" }
     val hideLowPriorityFlow: Flow<Boolean>   = context.dataStore.data.map { it[HIDE_LOW_PRIORITY]        ?: false }
+    // Emits the current sort mode; defaults to "Manual" on first install
+    val sortModeFlow: Flow<String>           = context.dataStore.data.map { it[SORT_MODE]               ?: "Manual" }
 
     // ---- Write Functions ----
     // All writes use dataStore.edit() which runs on the IO dispatcher automatically.
@@ -72,4 +77,5 @@ class SettingsDataStore(private val context: Context) {
     suspend fun saveDefaultTimeframe(value: String)     { context.dataStore.edit { it[DEFAULT_TIMEFRAME]        = value   } }
     suspend fun saveDefaultPriority(value: String)      { context.dataStore.edit { it[DEFAULT_PRIORITY]         = value   } }
     suspend fun saveHideLowPriority(value: Boolean)     { context.dataStore.edit { it[HIDE_LOW_PRIORITY]        = value   } }
+    suspend fun saveSortMode(value: String)             { context.dataStore.edit { it[SORT_MODE]               = value   } }
 }

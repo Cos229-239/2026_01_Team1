@@ -54,19 +54,24 @@ class SettingsViewModel(
                 }
             }
 
-            // Group 2: task creation defaults and Priority screen filter
+            // Group 2: task defaults, Priority screen filter, and smart sort mode.
+            // combine() only supports up to 5 flows, so sortMode is added to this group
+            // (which already had 3 flows) rather than creating a third combine block.
             viewModelScope.launch {
                 combine(
                     settingsDataStore.defaultTimeframeFlow,
                     settingsDataStore.defaultPriorityFlow,
-                    settingsDataStore.hideLowPriorityFlow
-                ) { defaultTimeframe, defaultPriority, hideLowPriority ->
-                    Triple(defaultTimeframe, defaultPriority, hideLowPriority)
-                }.collect { (defaultTimeframe, defaultPriority, hideLowPriority) ->
+                    settingsDataStore.hideLowPriorityFlow,
+                    settingsDataStore.sortModeFlow
+                ) { values ->
+                    // 4-flow combine requires the Array lambda form
+                    arrayOf(values[0], values[1], values[2], values[3])
+                }.collect { values ->
                     _settings.value = _settings.value.copy(
-                        defaultTimeframe                = defaultTimeframe,
-                        defaultPriority                 = defaultPriority,
-                        hideLowPriorityInPriorityScreen = hideLowPriority
+                        defaultTimeframe                = values[0] as String,
+                        defaultPriority                 = values[1] as String,
+                        hideLowPriorityInPriorityScreen = values[2] as Boolean,
+                        sortMode                        = values[3] as String
                     )
                 }
             }
@@ -114,6 +119,14 @@ class SettingsViewModel(
     fun updateHideLowPriorityInPriorityScreen(value: Boolean) {
         _settings.value = _settings.value.copy(hideLowPriorityInPriorityScreen = value)
         viewModelScope.launch { settingsDataStore?.saveHideLowPriority(value) }
+    }
+
+    // --- Smart Sorting setting ---
+
+    /** Sets the sort mode for the Tasks screen. Values: "Manual", "By Priority", "By Due Date", "Soonest First". */
+    fun updateSortMode(value: String) {
+        _settings.value = _settings.value.copy(sortMode = value)
+        viewModelScope.launch { settingsDataStore?.saveSortMode(value) }
     }
 
     // --- Theme settings --- (implemented by separate team member)

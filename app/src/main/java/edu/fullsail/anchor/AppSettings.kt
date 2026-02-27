@@ -22,10 +22,20 @@ data class AppSettings(
 
     // ---- Task Defaults ----
     // Pre-selected timeframe shown on the Create Task screen for new tasks.
-    val defaultTimeframe: String = "Daily",
+    // "None" means no timeframe is pre-selected — task lands in the Unassigned section.
+    val defaultTimeframe: String = "None",
 
     // Pre-selected priority shown on the Create Task screen for new tasks.
-    val defaultPriority: String = "Medium",
+    // "None" means no priority is pre-selected — task lands in the Unassigned section on the Priority screen.
+    val defaultPriority: String = "None",
+
+    // ---- Smart Sorting ----
+    // Controls how active tasks are ordered within sections on the Tasks screen.
+    //   "Manual"        — drag-and-drop order (user's explicit arrangement, default)
+    //   "By Priority"   — High > Medium > Low > Unassigned within each timeframe section
+    //   "By Due Date"   — ascending due date within each section (no date goes last)
+    //   "Soonest First" — all tasks merged into one flat list sorted by due date
+    val sortMode: String = "Manual",
 
     // ---- Priority Screen ----
     // When true, the Later/Optional (Low Priority) section is hidden on the Priority screen.

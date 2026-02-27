@@ -9,27 +9,46 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 /**
- * ADDED FOR PERSISTENCE
  * Data Access Object for TaskEntity.
- * Uses Flow for getAllTasks() so the UI automatically updates when data changes.
- * All write operations are suspend functions to be called from coroutines.
+ *
+ * getAllTasks() returns a Flow so the UI automatically recomposes whenever the
+ * task list changes in Room — no manual refresh calls are needed.
+ *
+ * All write operations are suspend functions so they must be called from a
+ * coroutine (typically via viewModelScope.launch in TaskViewModel).
  */
 @Dao
 interface TaskDao {
 
-    // ADDED FOR PERSISTENCE — returns a live stream of all tasks, ordered by insertion
-    @Query("SELECT * FROM tasks")
+    /**
+     * Returns all tasks ordered by sortOrder ascending.
+     * Ordering by sortOrder ensures drag-and-drop changes are reflected immediately
+     * after TaskRepository.reorderTasks() updates the values.
+     * New tasks with sortOrder = Int.MAX_VALUE naturally appear at the bottom.
+     */
+    @Query("SELECT * FROM tasks ORDER BY sortOrder ASC")
     fun getAllTasks(): Flow<List<TaskEntity>>
 
-    // ADDED FOR PERSISTENCE — inserts a new task; replaces on conflict (handles upsert for updates)
+    /**
+     * Inserts a new task. REPLACE conflict strategy means re-inserting a task with
+     * the same ID will overwrite the existing row — effectively an upsert.
+     */
     @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     suspend fun insertTask(task: TaskEntity)
 
-    // ADDED FOR PERSISTENCE — updates an existing task matched by primary key (id)
+    /** Updates all fields of an existing task matched by its primary key (id). */
     @Update
     suspend fun updateTask(task: TaskEntity)
 
-    // ADDED FOR PERSISTENCE — deletes a task matched by primary key (id)
+    /** Deletes a task from the database by matching its primary key (id). */
     @Delete
     suspend fun deleteTask(task: TaskEntity)
+
+    /**
+     * Updates only the sortOrder column for a single task.
+     * Called in a loop by TaskRepository.reorderTasks() after a drag-and-drop
+     * gesture completes, assigning sequential indices (0, 1, 2, ...) to all tasks.
+     */
+    @Query("UPDATE tasks SET sortOrder = :sortOrder WHERE id = :id")
+    suspend fun updateSortOrder(id: String, sortOrder: Int)
 }

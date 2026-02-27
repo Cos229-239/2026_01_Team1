@@ -34,6 +34,7 @@ import edu.fullsail.anchor.R
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.delay
+import androidx.compose.ui.graphics.Color
 
 // Helper data class for splitting tasks into four priority groups.
 // Defined at file level (not inside the composable) so the Kotlin compiler
@@ -75,7 +76,7 @@ fun PriorityScreen(
 ) {
     val allTasks by viewModel.tasks.collectAsState()
     val settings by settingsViewModel.settings.collectAsState()
-    val context  = LocalContext.current
+    val context = LocalContext.current
 
     // explosions holds active confetti bursts. Each Explosion has a unique id and
     // a screen position. ConfettiOverlay animates them; finished ones are removed
@@ -92,10 +93,16 @@ fun PriorityScreen(
     val (high, medium, low, unassigned) = remember(allTasks) {
         val incomplete = allTasks.filter { !it.isCompleted }
         PriorityGroups(
-            high       = incomplete.filter { it.priority == "High"   },
-            medium     = incomplete.filter { it.priority == "Medium" },
-            low        = incomplete.filter { it.priority == "Low"    },
-            unassigned = incomplete.filter { it.priority == "None" || it.priority !in setOf("High","Medium","Low") }
+            high = incomplete.filter { it.priority == "High" },
+            medium = incomplete.filter { it.priority == "Medium" },
+            low = incomplete.filter { it.priority == "Low" },
+            unassigned = incomplete.filter {
+                it.priority == "None" || it.priority !in setOf(
+                    "High",
+                    "Medium",
+                    "Low"
+                )
+            }
         )
     }
 
@@ -108,9 +115,9 @@ fun PriorityScreen(
     // Each section tracks its own expand/collapse state independently.
     // Using plain remember (not rememberSaveable) because Offset isn't serializable
     // and resetting expand state on process death is acceptable.
-    var isFocusExpanded      by remember { mutableStateOf(true) }
-    var isActiveExpanded     by remember { mutableStateOf(true) }
-    var isLaterExpanded      by remember { mutableStateOf(true) }
+    var isFocusExpanded by remember { mutableStateOf(true) }
+    var isActiveExpanded by remember { mutableStateOf(true) }
+    var isLaterExpanded by remember { mutableStateOf(true) }
     // Unassigned section starts collapsed — it's a catch-all, not a primary work queue
     var isUnassignedExpanded by remember { mutableStateOf(false) }
 
@@ -128,7 +135,7 @@ fun PriorityScreen(
     LaunchedEffect(allTasks) {
         val stats = viewModel.buildEngagementStats()
         val (updatedBadges, newlyUnlocked) = BadgeRuleEngine.evaluate(
-            stats    = stats,
+            stats = stats,
             existing = badgesViewModel.badges
         )
         badgesViewModel.saveBadges(updatedBadges)
@@ -149,7 +156,7 @@ fun PriorityScreen(
             }
     ) {
         LazyColumn(
-            contentPadding      = PaddingValues(vertical = 16.dp),
+            contentPadding = PaddingValues(vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
 
@@ -162,12 +169,12 @@ fun PriorityScreen(
                     0
                 }
                 PrioritySectionHeader(
-                    title           = "Focus",
-                    iconRes         = R.drawable.focus,
-                    iconSize        = 30.dp,
+                    title = "Focus",
+                    iconRes = R.drawable.focus,
+                    iconSize = 30.dp,
                     additionalCount = additionalCount,
-                    isExpanded      = isFocusExpanded,
-                    onToggle        = { isFocusExpanded = !isFocusExpanded }
+                    isExpanded = isFocusExpanded,
+                    onToggle = { isFocusExpanded = !isFocusExpanded }
                 )
             }
 
@@ -175,12 +182,17 @@ fun PriorityScreen(
                 // displayedHighTasks is already capped to 3 when limitFocusToThree is ON
                 items(displayedHighTasks, key = { task: Task -> task.id }) { task ->
                     PriorityTaskRow(
-                        task             = task,
-                        onToggle         = { pos -> onTaskComplete(task.id, pos) },
-                        onDelete         = { viewModel.deleteTask(task.id) },
-                        onEdit           = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                        onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) },
-                        settings         = settings
+                        task = task,
+                        onToggle = { pos -> onTaskComplete(task.id, pos) },
+                        onDelete = { viewModel.deleteTask(task.id) },
+                        onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
+                        onPriorityChange = { newPriority ->
+                            viewModel.updatePriority(
+                                task.id,
+                                newPriority
+                            )
+                        },
+                        settings = settings
                     )
                 }
             }
@@ -190,21 +202,26 @@ fun PriorityScreen(
             if (medium.isNotEmpty()) {
                 item(key = "header_active") {
                     PrioritySectionHeader(
-                        title      = "☑ Active",
+                        title = "☑ Active",
                         isExpanded = isActiveExpanded,
-                        onToggle   = { isActiveExpanded = !isActiveExpanded }
+                        onToggle = { isActiveExpanded = !isActiveExpanded }
                     )
                 }
 
                 if (isActiveExpanded) {
                     items(medium, key = { task: Task -> task.id }) { task ->
                         PriorityTaskRow(
-                            task             = task,
-                            onToggle         = { pos -> onTaskComplete(task.id, pos) },
-                            onDelete         = { viewModel.deleteTask(task.id) },
-                            onEdit           = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                            onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) },
-                            settings         = settings
+                            task = task,
+                            onToggle = { pos -> onTaskComplete(task.id, pos) },
+                            onDelete = { viewModel.deleteTask(task.id) },
+                            onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
+                            onPriorityChange = { newPriority ->
+                                viewModel.updatePriority(
+                                    task.id,
+                                    newPriority
+                                )
+                            },
+                            settings = settings
                         )
                     }
                 }
@@ -215,23 +232,28 @@ fun PriorityScreen(
             if (low.isNotEmpty() && !settings.hideLowPriorityInPriorityScreen) {
                 item(key = "header_later") {
                     PrioritySectionHeader(
-                        title      = "Later/Optional",
-                        iconRes    = R.drawable.hourglass,
-                        iconSize   = 18.dp,
+                        title = "Later/Optional",
+                        iconRes = R.drawable.hourglass,
+                        iconSize = 18.dp,
                         isExpanded = isLaterExpanded,
-                        onToggle   = { isLaterExpanded = !isLaterExpanded }
+                        onToggle = { isLaterExpanded = !isLaterExpanded }
                     )
                 }
 
                 if (isLaterExpanded) {
                     items(low, key = { task: Task -> task.id }) { task ->
                         PriorityTaskRow(
-                            task             = task,
-                            onToggle         = { pos -> onTaskComplete(task.id, pos) },
-                            onDelete         = { viewModel.deleteTask(task.id) },
-                            onEdit           = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                            onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) },
-                            settings         = settings
+                            task = task,
+                            onToggle = { pos -> onTaskComplete(task.id, pos) },
+                            onDelete = { viewModel.deleteTask(task.id) },
+                            onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
+                            onPriorityChange = { newPriority ->
+                                viewModel.updatePriority(
+                                    task.id,
+                                    newPriority
+                                )
+                            },
+                            settings = settings
                         )
                     }
                 }
@@ -243,21 +265,26 @@ fun PriorityScreen(
             if (unassigned.isNotEmpty()) {
                 item(key = "header_unassigned") {
                     PrioritySectionHeader(
-                        title      = "Unassigned",
+                        title = "Unassigned",
                         isExpanded = isUnassignedExpanded,
-                        onToggle   = { isUnassignedExpanded = !isUnassignedExpanded }
+                        onToggle = { isUnassignedExpanded = !isUnassignedExpanded }
                     )
                 }
 
                 if (isUnassignedExpanded) {
                     items(unassigned, key = { task: Task -> task.id }) { task ->
                         PriorityTaskRow(
-                            task             = task,
-                            onToggle         = { pos -> onTaskComplete(task.id, pos) },
-                            onDelete         = { viewModel.deleteTask(task.id) },
-                            onEdit           = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                            onPriorityChange = { newPriority -> viewModel.updatePriority(task.id, newPriority) },
-                            settings         = settings
+                            task = task,
+                            onToggle = { pos -> onTaskComplete(task.id, pos) },
+                            onDelete = { viewModel.deleteTask(task.id) },
+                            onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
+                            onPriorityChange = { newPriority ->
+                                viewModel.updatePriority(
+                                    task.id,
+                                    newPriority
+                                )
+                            },
+                            settings = settings
                         )
                     }
                 }
@@ -268,7 +295,7 @@ fun PriorityScreen(
         // ConfettiOverlay floats above all content inside the Box.
         // onBurstFinished removes the finished explosion from the list so it stops rendering.
         ConfettiOverlay(
-            explosions      = explosions,
+            explosions = explosions,
             onBurstFinished = { id -> explosions.removeAll { it.id == id } }
         )
     } // end Box
@@ -296,7 +323,7 @@ private fun PrioritySectionHeader(
     // animateFloatAsState smoothly rotates the chevron icon between collapsed (0°) and expanded (180°).
     val rotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
-        label       = "chevron rotation"
+        label = "chevron rotation"
     )
 
     Row(
@@ -308,9 +335,11 @@ private fun PrioritySectionHeader(
     ) {
         if (iconRes != null) {
             Image(
-                painter            = painterResource(id = iconRes),
+                painter = painterResource(id = iconRes),
                 contentDescription = null,
-                modifier           = Modifier.size(iconSize).padding(end = 8.dp)
+                modifier = Modifier
+                    .size(iconSize)
+                    .padding(end = 8.dp)
             )
         }
         Text(text = title, style = MaterialTheme.typography.titleLarge)
@@ -320,9 +349,9 @@ private fun PrioritySectionHeader(
         // Only visible in the Focus header when limitFocusToThree is ON and tasks are hidden
         if (additionalCount > 0) {
             Text(
-                text     = "+$additionalCount additional tasks",
-                style    = MaterialTheme.typography.bodySmall,
-                color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = "+$additionalCount additional tasks",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(end = 8.dp)
             )
         }
@@ -330,9 +359,9 @@ private fun PrioritySectionHeader(
         // graphicsLayer applies rotation without triggering a layout pass — more efficient
         // than swapping between two different icon composables.
         Icon(
-            imageVector        = Icons.Default.KeyboardArrowDown,
+            imageVector = Icons.Default.KeyboardArrowDown,
             contentDescription = if (isExpanded) "Collapse" else "Expand",
-            modifier           = Modifier.graphicsLayer { rotationZ = rotation }
+            modifier = Modifier.graphicsLayer { rotationZ = rotation }
         )
     }
 }
@@ -361,7 +390,7 @@ private fun PriorityTaskRow(
 ) {
     var showPriorityMenu by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var showEditDialog   by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
 
     // Updated by onGloballyPositioned on the Checkbox so confetti fires from
     // the center of the checkbox rather than from a fixed offset.
@@ -369,24 +398,26 @@ private fun PriorityTaskRow(
 
     // Scale padding based on the compact mode setting
     val cardHorizontalPadding = if (settings.compactMode) 12.dp else 16.dp
-    val rowPadding            = if (settings.compactMode) 4.dp  else 8.dp
-    val verticalPadding       = if (settings.compactMode) 6.dp  else 12.dp
+    val rowPadding = if (settings.compactMode) 4.dp else 8.dp
+    val verticalPadding = if (settings.compactMode) 6.dp else 12.dp
 
     Card(modifier = Modifier.padding(horizontal = cardHorizontalPadding)) {
         Row(
-            modifier          = Modifier.fillMaxWidth().padding(start = rowPadding, end = 4.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = rowPadding, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Checkbox — measures its own center position every time it's laid out so
             // confetti always bursts from exactly where the user tapped.
             Checkbox(
-                checked        = task.isCompleted,
+                checked = task.isCompleted,
                 onCheckedChange = { onToggle(checkboxPosition) },
-                modifier       = Modifier.onGloballyPositioned { coordinates ->
+                modifier = Modifier.onGloballyPositioned { coordinates ->
                     val position = coordinates.positionInWindow()
-                    val size     = coordinates.size
+                    val size = coordinates.size
                     checkboxPosition = Offset(
-                        x = position.x + size.width  / 2f,
+                        x = position.x + size.width / 2f,
                         y = position.y + size.height / 2f
                     )
                 }
@@ -397,8 +428,8 @@ private fun PriorityTaskRow(
                     .padding(vertical = verticalPadding, horizontal = 8.dp)
             ) {
                 Text(
-                    text       = task.title,
-                    style      = MaterialTheme.typography.bodyLarge,
+                    text = task.title,
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )
                 // Due date label — only shown when a due date has been set
@@ -431,20 +462,20 @@ private fun PriorityTaskRow(
                     Icon(Icons.Default.MoreVert, contentDescription = "Change Priority")
                 }
                 DropdownMenu(
-                    expanded         = showPriorityMenu,
+                    expanded = showPriorityMenu,
                     onDismissRequest = { showPriorityMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text    = { Text("High Priority") },
-                        onClick = { onPriorityChange("High");   showPriorityMenu = false }
+                        text = { Text("High Priority") },
+                        onClick = { onPriorityChange("High"); showPriorityMenu = false }
                     )
                     DropdownMenuItem(
-                        text    = { Text("Medium Priority") },
+                        text = { Text("Medium Priority") },
                         onClick = { onPriorityChange("Medium"); showPriorityMenu = false }
                     )
                     DropdownMenuItem(
-                        text    = { Text("Low Priority") },
-                        onClick = { onPriorityChange("Low");    showPriorityMenu = false }
+                        text = { Text("Low Priority") },
+                        onClick = { onPriorityChange("Low"); showPriorityMenu = false }
                     )
                 }
             }
@@ -455,12 +486,12 @@ private fun PriorityTaskRow(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title            = { Text("Delete Task") },
-            text             = { Text("Are you sure you want to delete this task?") },
-            confirmButton    = {
+            title = { Text("Delete Task") },
+            text = { Text("Are you sure you want to delete this task?") },
+            confirmButton = {
                 TextButton(onClick = { onDelete(); showDeleteDialog = false }) { Text("Delete") }
             },
-            dismissButton    = {
+            dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
             }
         )
@@ -470,12 +501,12 @@ private fun PriorityTaskRow(
     if (showEditDialog) {
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
-            title            = { Text("Edit Task") },
-            text             = { Text("Are you sure you want to edit this task?") },
-            confirmButton    = {
+            title = { Text("Edit Task") },
+            text = { Text("Are you sure you want to edit this task?") },
+            confirmButton = {
                 TextButton(onClick = { onEdit(); showEditDialog = false }) { Text("Edit") }
             },
-            dismissButton    = {
+            dismissButton = {
                 TextButton(onClick = { showEditDialog = false }) { Text("Cancel") }
             }
         )
@@ -516,26 +547,35 @@ fun TaskCountdown(dueDateMillis: Long?) {
         // Break milliseconds into human-readable units
         val seconds = (remainingTime / 1000) % 60
         val minutes = (remainingTime / (1000 * 60)) % 60
-        val hours   = (remainingTime / (1000 * 60 * 60)) % 24
-        val days    = (remainingTime / (1000 * 60 * 60 * 24))
+        val hours = (remainingTime / (1000 * 60 * 60)) % 24
+        val days = (remainingTime / (1000 * 60 * 60 * 24))
+
+        // Color will be based on time remaining
+        // Team agreed 3 hours (red) = 3 * 60 * 60 * 1000 ms
+        // 12 hours (gold) = 12 * 60 * 60 * 1000 ms
+        val timerColor = when {
+            remainingTime <= 3 * 3600000L -> MaterialTheme.colorScheme.error // red
+            remainingTime <= 12 * 3600000L -> Color(0xFFB5860D) // dark gold
+            else -> MaterialTheme.colorScheme.onSurfaceVariant // teal
+        }
 
         // Build the display string, omitting days and hours when they are zero
         val timeString = buildString {
-            if (days > 0)            append("${days}d ")
+            if (days > 0) append("${days}d ")
             if (hours > 0 || days > 0) append("${hours}h ")
             append("${minutes}m ${seconds}s")
         }
 
         Text(
-            text       = "Ends in: $timeString",
-            style      = MaterialTheme.typography.labelSmall,
-            color      = MaterialTheme.colorScheme.error,  // red to create urgency
+            text = "Ends in: $timeString",
+            style = MaterialTheme.typography.labelSmall,
+            color = timerColor,
             fontWeight = FontWeight.Bold
         )
     } else {
         // Due date has passed — show a persistent overdue indicator
         Text(
-            text  = "Overdue!",
+            text = "Overdue!",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.error
         )

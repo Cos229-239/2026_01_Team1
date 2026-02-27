@@ -100,7 +100,8 @@ class MainActivity : ComponentActivity() {
         // On older versions the permission is granted automatically at install time.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED) {
+                != PackageManager.PERMISSION_GRANTED
+            ) {
                 requestPermissions(
                     arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 0
                 )
@@ -122,8 +123,8 @@ class MainActivity : ComponentActivity() {
             val systemDark = isSystemInDarkTheme()
             val isDarkTheme = when (settings.themeMode) {
                 "Light" -> false
-                "Dark"  -> true
-                else    -> systemDark  // "System" — follow OS setting
+                "Dark" -> true
+                else -> systemDark  // "System" — follow OS setting
             }
 
             // SideEffect runs after every successful recomposition. Used here to sync
@@ -186,8 +187,8 @@ fun AppNavigation(settingsViewModel: SettingsViewModel) {
     // when a task is created (Dustin's notification feature).
     val taskViewModelFactory = remember {
         TaskViewModelFactory(
-            repository       = taskRepository,
-            appContext        = context.applicationContext,
+            repository = taskRepository,
+            appContext = context.applicationContext,
             settingsViewModel = settingsViewModel
         )
     }
@@ -209,21 +210,27 @@ fun AppNavigation(settingsViewModel: SettingsViewModel) {
     Scaffold(
         topBar = {
             // Show the top bar only on the four main screens, not on the create/edit screen.
-            if (currentRoute in listOf("tasks_screen", "priority_screen", "badges_screen", "settings_screen")) {
+            if (currentRoute in listOf(
+                    "tasks_screen",
+                    "priority_screen",
+                    "badges_screen",
+                    "settings_screen"
+                )
+            ) {
                 TopAppBar(
                     title = {
                         Text(
                             when (currentRoute) {
-                                "tasks_screen"    -> "Tasks"
+                                "tasks_screen" -> "Tasks"
                                 "priority_screen" -> "Priority"
-                                "badges_screen"   -> "Badges"
+                                "badges_screen" -> "Badges"
                                 "settings_screen" -> "Settings"
-                                else              -> ""
+                                else -> ""
                             }
                         )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor    = MaterialTheme.colorScheme.primary,
+                        containerColor = MaterialTheme.colorScheme.primary,
                         titleContentColor = Color.White
                     )
                 )
@@ -234,9 +241,9 @@ fun AppNavigation(settingsViewModel: SettingsViewModel) {
             // FAB only appears on screens where creating a task makes sense
             if (currentRoute in listOf("tasks_screen", "priority_screen")) {
                 FloatingActionButton(
-                    onClick        = { navController.navigate("create_task_screen") },
+                    onClick = { navController.navigate("create_task_screen") },
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor   = Color.White
+                    contentColor = Color.White
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = "Add Task")
                 }
@@ -244,10 +251,10 @@ fun AppNavigation(settingsViewModel: SettingsViewModel) {
         }
     ) { innerPadding ->
         NavHost(
-            navController    = navController,
+            navController = navController,
             // Priority screen is the home screen (agreed by team), shown after the splash.
             startDestination = "priority_screen",
-            modifier         = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding)
         ) {
             composable("tasks_screen") {
                 TasksScreen(navController, taskViewModel, badgesViewModel, settingsViewModel)
@@ -265,15 +272,15 @@ fun AppNavigation(settingsViewModel: SettingsViewModel) {
             composable(
                 route = "create_task_screen?taskId={taskId}",
                 arguments = listOf(navArgument("taskId") {
-                    type     = NavType.StringType
+                    type = NavType.StringType
                     nullable = true
                 })
             ) { backStackEntry ->
                 val taskId = backStackEntry.arguments?.getString("taskId")
                 CreateTaskScreen(
-                    navController     = navController,
-                    taskViewModel     = taskViewModel,
-                    taskId            = taskId,
+                    navController = navController,
+                    taskViewModel = taskViewModel,
+                    taskId = taskId,
                     settingsViewModel = settingsViewModel
                 )
             }
@@ -309,7 +316,7 @@ fun TasksScreen(
     settingsViewModel: SettingsViewModel
 ) {
     val allTasks by taskViewModel.tasks.collectAsState()
-    val settings  by settingsViewModel.settings.collectAsState()
+    val settings by settingsViewModel.settings.collectAsState()
 
     // The order in which sections are displayed. "None" is last so the Unassigned
     // section always appears below all assigned timeframe sections.
@@ -317,12 +324,13 @@ fun TasksScreen(
 
     // Maps priority strings to sort keys for the "By Priority" mode.
     // Int.MAX_VALUE is the fallback so any unrecognised value sorts to the bottom.
-    val priorityOrder  = mapOf("High" to 0, "Medium" to 1, "Low" to 2, "None" to 3)
+    val priorityOrder = mapOf("High" to 0, "Medium" to 1, "Low" to 2, "None" to 3)
 
     // Separate completed from active. Completed tasks always read directly from the DB
     // so they stay accurate. Active tasks go through the drag snapshot (see below).
-    val activeTasks    = allTasks.filter { !it.isCompleted }.sortedBy { it.sortOrder }
-    val completedTasks = allTasks.filter {  it.isCompleted }.sortedByDescending { it.completedAtMillis }
+    val activeTasks = allTasks.filter { !it.isCompleted }.sortedBy { it.sortOrder }
+    val completedTasks =
+        allTasks.filter { it.isCompleted }.sortedByDescending { it.completedAtMillis }
 
     // DRAG SNAPSHOT PATTERN:
     //   null  = no drag in progress; the LazyColumn renders from Room via activeTasks.
@@ -335,7 +343,7 @@ fun TasksScreen(
 
     // Snackbar shown when a task is dragged into a different timeframe section
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope             = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
 
     // Runs when dragSnapshot becomes non-null and then goes back to null.
     // After a brief debounce (200ms), it:
@@ -346,29 +354,36 @@ fun TasksScreen(
     LaunchedEffect(dragSnapshot) {
         val snapshot = dragSnapshot ?: return@LaunchedEffect
         delay(200)  // debounce: wait until the drag gesture has fully settled
-        val activeMap   = activeTasks.associateBy { it.id }
-        val activeIds   = activeMap.keys
+        val activeMap = activeTasks.associateBy { it.id }
+        val activeIds = activeMap.keys
         val snapshotIds = snapshot.map { it.id }.toSet()
         if (activeIds == snapshotIds) {
             // Find tasks whose timeframe field changed during this drag
-            val timeframeChanges = snapshot.filter { s -> activeMap[s.id]?.timeframe != s.timeframe }
+            val timeframeChanges =
+                snapshot.filter { s -> activeMap[s.id]?.timeframe != s.timeframe }
             // Persist timeframe changes before reordering so the order write sees the right data
             timeframeChanges.forEach { task ->
-                taskViewModel.updateTask(task.id, task.title, task.dueDateMillis, task.priority, task.timeframe)
+                taskViewModel.updateTask(
+                    task.id,
+                    task.title,
+                    task.dueDateMillis,
+                    task.priority,
+                    task.timeframe
+                )
             }
             taskViewModel.reorderTasks(snapshot)
             // Confirmation snackbar for cross-section drags
             if (timeframeChanges.size == 1) {
                 scope.launch {
                     snackbarHostState.showSnackbar(
-                        message  = "\"${timeframeChanges[0].title}\" moved to ${timeframeChanges[0].timeframe}",
+                        message = "\"${timeframeChanges[0].title}\" moved to ${timeframeChanges[0].timeframe}",
                         duration = SnackbarDuration.Short
                     )
                 }
             } else if (timeframeChanges.size > 1) {
                 scope.launch {
                     snackbarHostState.showSnackbar(
-                        message  = "${timeframeChanges.size} tasks moved",
+                        message = "${timeframeChanges.size} tasks moved",
                         duration = SnackbarDuration.Short
                     )
                 }
@@ -392,12 +407,13 @@ fun TasksScreen(
     // order and timeframe, then updates dragSnapshot so the UI redraws immediately.
     val reorderState = rememberReorderableLazyListState(lazyListState) { from, to ->
         val fromKey = from.key as? String ?: return@rememberReorderableLazyListState
-        val toKey   = to.key   as? String ?: return@rememberReorderableLazyListState
+        val toKey = to.key as? String ?: return@rememberReorderableLazyListState
 
         // Prevent dragging headers or completed items
         if (fromKey.startsWith("hdr_") ||
             fromKey.startsWith("done_") || fromKey == "completed_header" ||
-            toKey.startsWith("done_")   || toKey   == "completed_header") {
+            toKey.startsWith("done_") || toKey == "completed_header"
+        ) {
             return@rememberReorderableLazyListState
         }
 
@@ -457,10 +473,12 @@ fun TasksScreen(
             }
         } else {
             LazyColumn(
-                state               = lazyListState,
-                modifier            = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                state = lazyListState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding      = PaddingValues(top = 16.dp, bottom = 88.dp)
+                contentPadding = PaddingValues(top = 16.dp, bottom = 88.dp)
             ) {
                 // --- Active tasks grouped by timeframe ---
                 // "Soonest First" flattens everything into a single "All Tasks" group sorted
@@ -496,35 +514,40 @@ fun TasksScreen(
                     // Apply per-section sorting based on the active sort mode.
                     // Soonest First is already sorted at the group level so it falls through to else.
                     val tasksInGroup = when (settings.sortMode) {
-                        "By Priority" -> rawGroup.sortedBy { priorityOrder[it.priority] ?: Int.MAX_VALUE }
+                        "By Priority" -> rawGroup.sortedBy {
+                            priorityOrder[it.priority] ?: Int.MAX_VALUE
+                        }
+
                         "By Due Date" -> rawGroup.sortedWith(compareBy(nullsLast()) { it.dueDateMillis })
-                        else          -> rawGroup
+                        else -> rawGroup
                     }
                     val isExpanded = timeframeExpanded.getOrDefault(timeframe, true)
 
                     // Translate internal "None" to the user-facing label "Unassigned"
                     val headerLabel = when (timeframe) {
-                        "None"      -> "Unassigned"
+                        "None" -> "Unassigned"
                         "All Tasks" -> "All Tasks"
-                        else        -> timeframe
+                        else -> timeframe
                     }
 
                     // Collapsible section header — "hdr_" prefix identifies headers to the
                     // drag-and-drop guard so they cannot be picked up and dragged.
                     item(key = "hdr_$timeframe", contentType = "header") {
                         Row(
-                            modifier          = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp, bottom = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text  = "$headerLabel  (${tasksInGroup.size})",
+                                    text = "$headerLabel  (${tasksInGroup.size})",
                                     style = MaterialTheme.typography.titleLarge
                                 )
                                 // Subtitle hint on the Unassigned section so users know they can assign later
                                 if (timeframe == "None") {
                                     Text(
-                                        text  = "No timeframe set — edit a task to assign one",
+                                        text = "No timeframe set — edit a task to assign one",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                                     )
@@ -533,7 +556,7 @@ fun TasksScreen(
                             // Toggle button flips expand state for this section only
                             IconButton(onClick = { timeframeExpanded[timeframe] = !isExpanded }) {
                                 Icon(
-                                    imageVector        = if (isExpanded) Icons.Filled.KeyboardArrowUp
+                                    imageVector = if (isExpanded) Icons.Filled.KeyboardArrowUp
                                     else Icons.Filled.KeyboardArrowDown,
                                     contentDescription = if (isExpanded) "Collapse $headerLabel" else "Expand $headerLabel"
                                 )
@@ -550,31 +573,46 @@ fun TasksScreen(
                                 // Raise the card's shadow while it is being dragged
                                 val elevation = if (isDragging) 8.dp else 1.dp
                                 Card(
-                                    modifier  = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth(),
                                     elevation = CardDefaults.cardElevation(defaultElevation = elevation)
                                 ) {
                                     TaskItem(
-                                        task               = task,
-                                        settings           = settings,
+                                        task = task,
+                                        settings = settings,
                                         // draggableHandle() is the modifier that makes the drag handle icon
                                         // respond to long-press gestures from the reorder library.
                                         dragHandleModifier = Modifier.draggableHandle(),
-                                        onEdit             = { navController.navigate("create_task_screen?taskId=${task.id}") },
-                                        onDelete           = { taskViewModel.deleteTask(task.id) },
-                                        onToggleComplete   = {
+                                        onEdit = { navController.navigate("create_task_screen?taskId=${task.id}") },
+                                        onDelete = { taskViewModel.deleteTask(task.id) },
+                                        onToggleComplete = {
                                             taskViewModel.toggleTaskCompletion(task.id)
                                             // Re-evaluate badges immediately after every completion
                                             // so the badge screen always shows up-to-date progress.
                                             val stats = taskViewModel.buildEngagementStats()
                                             val (updatedBadges, _) = BadgeRuleEngine.evaluate(
-                                                stats    = stats,
+                                                stats = stats,
                                                 existing = badgesViewModel.badges
                                             )
                                             badgesViewModel.saveBadges(updatedBadges)
                                         },
-                                        onAddSubtask    = { title -> taskViewModel.addSubtask(task.id, title) },
-                                        onToggleSubtask = { subId -> taskViewModel.toggleSubtask(task.id, subId) },
-                                        onDeleteSubtask = { subId -> taskViewModel.deleteSubtask(task.id, subId) }
+                                        onAddSubtask = { title ->
+                                            taskViewModel.addSubtask(
+                                                task.id,
+                                                title
+                                            )
+                                        },
+                                        onToggleSubtask = { subId ->
+                                            taskViewModel.toggleSubtask(
+                                                task.id,
+                                                subId
+                                            )
+                                        },
+                                        onDeleteSubtask = { subId ->
+                                            taskViewModel.deleteSubtask(
+                                                task.id,
+                                                subId
+                                            )
+                                        }
                                     )
                                 }
                             }
@@ -588,17 +626,19 @@ fun TasksScreen(
                 if (completedTasks.isNotEmpty()) {
                     item(key = "completed_header", contentType = "header") {
                         Row(
-                            modifier          = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp, bottom = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text     = "Completed (${completedTasks.size})",
-                                style    = MaterialTheme.typography.titleLarge,
+                                text = "Completed (${completedTasks.size})",
+                                style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.weight(1f)
                             )
                             IconButton(onClick = { completedExpanded = !completedExpanded }) {
                                 Icon(
-                                    imageVector        = if (completedExpanded) Icons.Filled.KeyboardArrowUp
+                                    imageVector = if (completedExpanded) Icons.Filled.KeyboardArrowUp
                                     else Icons.Filled.KeyboardArrowDown,
                                     contentDescription = if (completedExpanded) "Collapse" else "Expand"
                                 )
@@ -610,10 +650,13 @@ fun TasksScreen(
                     if (completedExpanded) {
                         // "done_" prefix distinguishes completed item keys from active task keys
                         // in the drag-and-drop guard so completed items cannot be reordered.
-                        items(completedTasks, key = { "done_${it.id}" }, contentType = { "completed" }) { task ->
+                        items(
+                            completedTasks,
+                            key = { "done_${it.id}" },
+                            contentType = { "completed" }) { task ->
                             CompletedTaskItem(
-                                task      = task,
-                                settings  = settings,
+                                task = task,
+                                settings = settings,
                                 onUncheck = {
                                     // Clear the snapshot before unchecking so the list doesn't
                                     // briefly show stale drag state when the task moves back to active.
@@ -621,12 +664,12 @@ fun TasksScreen(
                                     taskViewModel.toggleTaskCompletion(task.id)
                                     val stats = taskViewModel.buildEngagementStats()
                                     val (updatedBadges, _) = BadgeRuleEngine.evaluate(
-                                        stats    = stats,
+                                        stats = stats,
                                         existing = badgesViewModel.badges
                                     )
                                     badgesViewModel.saveBadges(updatedBadges)
                                 },
-                                onDelete  = { taskViewModel.deleteTask(task.id) }
+                                onDelete = { taskViewModel.deleteTask(task.id) }
                             )
                         }
                     }
@@ -637,7 +680,9 @@ fun TasksScreen(
         // Snackbar appears above the bottom nav bar after a cross-section drag
         SnackbarHost(
             hostState = snackbarHostState,
-            modifier  = Modifier.align(Alignment.BottomCenter).padding(bottom = 88.dp)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 88.dp)
         )
     }
 }
@@ -669,12 +714,12 @@ fun CompletedTaskItem(
     // Dim the card background to visually separate completed from active tasks
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors   = CardDefaults.cardColors(
+        colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
         Row(
-            modifier          = Modifier.padding(cardPadding),
+            modifier = Modifier.padding(cardPadding),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Unchecking a completed task moves it back to the active list
@@ -682,14 +727,14 @@ fun CompletedTaskItem(
             Spacer(Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text           = task.title,
-                    fontWeight     = FontWeight.Normal,
-                    color          = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    text = task.title,
+                    fontWeight = FontWeight.Normal,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     textDecoration = TextDecoration.LineThrough,
-                    style          = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    text  = completedLabel,
+                    text = completedLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 )
@@ -705,8 +750,8 @@ fun CompletedTaskItem(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title  = { Text("Delete Task") },
-            text   = { Text("Delete \"${task.title}\"?") },
+            title = { Text("Delete Task") },
+            text = { Text("Delete \"${task.title}\"?") },
             confirmButton = {
                 TextButton(onClick = { onDelete(); showDeleteDialog = false }) { Text("Delete") }
             },
@@ -742,12 +787,12 @@ fun TaskItem(
     onDeleteSubtask: (String) -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var showEditDialog   by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
     var subtasksExpanded by remember { mutableStateOf(false) }  // chevron state
-    var newSubtaskTitle  by remember { mutableStateOf("") }     // input field state
+    var newSubtaskTitle by remember { mutableStateOf("") }     // input field state
 
-    val doneCount      = task.subtasks.count { it.isDone }
-    val totalCount     = task.subtasks.size
+    val doneCount = task.subtasks.count { it.isDone }
+    val totalCount = task.subtasks.size
     // True when every subtask is checked — used to show the "mark task complete?" strip
     val allSubtasksDone = totalCount > 0 && doneCount == totalCount
 
@@ -755,17 +800,19 @@ fun TaskItem(
 
         // ---- Main task row ----
         Row(
-            modifier          = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Drag handle — long-press initiates the reorder gesture.
             // dragHandleModifier is provided by ReorderableItem in TasksScreen;
             // applying it here is what connects this icon to the drag library.
             Icon(
-                imageVector        = Icons.Default.DragHandle,
+                imageVector = Icons.Default.DragHandle,
                 contentDescription = "Drag to reorder",
-                modifier           = dragHandleModifier.size(24.dp),
-                tint               = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                modifier = dragHandleModifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
 
             Checkbox(checked = task.isCompleted, onCheckedChange = { onToggleComplete() })
@@ -774,9 +821,9 @@ fun TaskItem(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text       = task.title,
+                        text = task.title,
                         fontWeight = FontWeight.Bold,
-                        modifier   = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f)
                     )
                     // Subtask progress badge — only visible when the task has subtasks.
                     // Badge turns the primary color when all subtasks are done.
@@ -788,10 +835,10 @@ fun TaskItem(
                             shape = MaterialTheme.shapes.small
                         ) {
                             Text(
-                                text     = "$doneCount/$totalCount",
-                                style    = MaterialTheme.typography.labelSmall,
+                                text = "$doneCount/$totalCount",
+                                style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                color    = if (allSubtasksDone) MaterialTheme.colorScheme.onPrimary
+                                color = if (allSubtasksDone) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -806,7 +853,7 @@ fun TaskItem(
             // Chevron toggles the subtask section visibility
             IconButton(onClick = { subtasksExpanded = !subtasksExpanded }) {
                 Icon(
-                    imageVector        = if (subtasksExpanded) Icons.Filled.KeyboardArrowUp
+                    imageVector = if (subtasksExpanded) Icons.Filled.KeyboardArrowUp
                     else Icons.Filled.KeyboardArrowDown,
                     contentDescription = if (subtasksExpanded) "Collapse subtasks" else "Expand subtasks"
                 )
@@ -828,8 +875,8 @@ fun TaskItem(
         // The content is only composed when visible = true, saving layout work.
         AnimatedVisibility(
             visible = subtasksExpanded,
-            enter   = expandVertically(),
-            exit    = shrinkVertically()
+            enter = expandVertically(),
+            exit = shrinkVertically()
         ) {
             Column(
                 modifier = Modifier
@@ -840,19 +887,19 @@ fun TaskItem(
                 // but the parent task itself is still incomplete.
                 if (allSubtasksDone && !task.isCompleted) {
                     Surface(
-                        color    = MaterialTheme.colorScheme.surface,
-                        shape    = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = MaterialTheme.shapes.small,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
-                            modifier          = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text     = "All subtasks done! Mark task complete?",
-                                style    = MaterialTheme.typography.bodySmall,
+                                text = "All subtasks done! Mark task complete?",
+                                style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.weight(1f),
-                                color    = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             // Tapping "Complete" triggers the same completion flow as the checkbox
                             TextButton(onClick = onToggleComplete) {
@@ -866,35 +913,35 @@ fun TaskItem(
                 // Existing subtask rows
                 task.subtasks.forEach { subtask ->
                     Row(
-                        modifier          = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Smaller checkbox (32dp) to keep subtask rows compact
                         Checkbox(
-                            checked         = subtask.isDone,
+                            checked = subtask.isDone,
                             onCheckedChange = { onToggleSubtask(subtask.id) },
-                            modifier        = Modifier.size(32.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                         Text(
-                            text           = subtask.title,
-                            style          = MaterialTheme.typography.bodyMedium,
-                            modifier       = Modifier.weight(1f),
+                            text = subtask.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f),
                             // Dim and strikethrough completed subtasks
-                            color          = if (subtask.isDone)
+                            color = if (subtask.isDone)
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             else MaterialTheme.colorScheme.onSurface,
                             textDecoration = if (subtask.isDone) TextDecoration.LineThrough else null
                         )
                         // X button removes the subtask immediately without a confirmation dialog
                         IconButton(
-                            onClick  = { onDeleteSubtask(subtask.id) },
+                            onClick = { onDeleteSubtask(subtask.id) },
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
                                 Icons.Filled.Close,
                                 contentDescription = "Remove subtask",
-                                modifier           = Modifier.size(16.dp),
-                                tint               = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                             )
                         }
                     }
@@ -904,16 +951,21 @@ fun TaskItem(
                 // Pressing Done on the keyboard or the + button appends a new subtask.
                 // Blank entries are silently ignored.
                 Row(
-                    modifier          = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
-                        value           = newSubtaskTitle,
-                        onValueChange   = { newSubtaskTitle = it },
-                        placeholder     = { Text("Add subtask...", style = MaterialTheme.typography.bodySmall) },
-                        modifier        = Modifier.weight(1f),
-                        singleLine      = true,
-                        textStyle       = MaterialTheme.typography.bodyMedium,
+                        value = newSubtaskTitle,
+                        onValueChange = { newSubtaskTitle = it },
+                        placeholder = {
+                            Text(
+                                "Add subtask...",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = {
                             if (newSubtaskTitle.isNotBlank()) {
@@ -942,8 +994,8 @@ fun TaskItem(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title  = { Text("Delete Task") },
-            text   = { Text("Are you sure you want to delete this task?") },
+            title = { Text("Delete Task") },
+            text = { Text("Are you sure you want to delete this task?") },
             confirmButton = {
                 TextButton(onClick = { onDelete(); showDeleteDialog = false }) { Text("Delete") }
             },
@@ -956,8 +1008,8 @@ fun TaskItem(
     if (showEditDialog) {
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
-            title  = { Text("Edit Task") },
-            text   = { Text("Are you sure you want to edit this task?") },
+            title = { Text("Edit Task") },
+            text = { Text("Are you sure you want to edit this task?") },
             confirmButton = {
                 TextButton(onClick = { onEdit(); showEditDialog = false }) { Text("Edit") }
             },
@@ -977,19 +1029,19 @@ fun TaskItem(
 fun SplashScreen() {
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color    = MaterialTheme.colorScheme.background
+        color = MaterialTheme.colorScheme.background
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text     = "Anchor",
-                    color    = MaterialTheme.colorScheme.primary,
+                    text = "Anchor",
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 30.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text     = "Anchor what matters today",
-                    color    = MaterialTheme.colorScheme.primary,
+                    text = "Anchor what matters today",
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 16.sp
                 )
             }
@@ -1022,23 +1074,31 @@ fun CreateTaskScreen(
     taskId: String?,                    // null = creating a new task
     settingsViewModel: SettingsViewModel
 ) {
-    val isEditing  = taskId != null
+    val isEditing = taskId != null
     val taskToEdit = if (isEditing) taskViewModel.getTaskById(taskId!!) else null
-    val settings  by settingsViewModel.settings.collectAsState()
+    val settings by settingsViewModel.settings.collectAsState()
 
     // Pre-fill fields from the existing task when editing; use defaults for new tasks.
-    var titleInput       by remember { mutableStateOf(taskToEdit?.title ?: "") }
-    var dueDateMillis    by remember { mutableStateOf(taskToEdit?.dueDateMillis) }
+    var titleInput by remember { mutableStateOf(taskToEdit?.title ?: "") }
+    var dueDateMillis by remember { mutableStateOf(taskToEdit?.dueDateMillis) }
     // "None" listed first so users are not nudged toward any priority tier.
     // Default is "None" (from settings) so new tasks don't get a priority forced on them.
-    val priorityOptions   = listOf("None", "High", "Medium", "Low")
-    var selectedPriority by remember { mutableStateOf(taskToEdit?.priority ?: settings.defaultPriority) }
+    val priorityOptions = listOf("None", "High", "Medium", "Low")
+    var selectedPriority by remember {
+        mutableStateOf(
+            taskToEdit?.priority ?: settings.defaultPriority
+        )
+    }
     // "None" lets users save a task without committing to a timeframe section.
-    val timeframeOptions  = listOf("None", "Daily", "Weekly", "Monthly", "Yearly")
-    var selectedTimeframe by remember { mutableStateOf(taskToEdit?.timeframe ?: settings.defaultTimeframe) }
-    var validationError  by remember { mutableStateOf<String?>(null) }
-    var showDatePicker   by remember { mutableStateOf(false) }
-    var showTimePicker   by remember { mutableStateOf(false) }
+    val timeframeOptions = listOf("None", "Daily", "Weekly", "Monthly", "Yearly")
+    var selectedTimeframe by remember {
+        mutableStateOf(
+            taskToEdit?.timeframe ?: settings.defaultTimeframe
+        )
+    }
+    var validationError by remember { mutableStateOf<String?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     // Subtask list — observable so adding/removing items triggers recomposition.
     // Pre-populated from the existing task when editing; empty for new tasks.
@@ -1070,8 +1130,8 @@ fun CreateTaskScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor             = MaterialTheme.colorScheme.primary,
-                    titleContentColor          = Color.White,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
             )
@@ -1087,11 +1147,11 @@ fun CreateTaskScreen(
             // --- Title ---
             Text(text = "Task Title")
             OutlinedTextField(
-                value         = titleInput,
+                value = titleInput,
                 onValueChange = { titleInput = it },
-                label         = { Text("Title") },
-                modifier      = Modifier.fillMaxWidth(),
-                singleLine    = true
+                label = { Text("Title") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -1102,9 +1162,9 @@ fun CreateTaskScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = { showDatePicker = true },
-                    colors  = ButtonDefaults.buttonColors(
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor   = Color.White
+                        contentColor = Color.White
                     )
                 ) {
                     // Button label shows the selected date or a placeholder
@@ -1114,9 +1174,9 @@ fun CreateTaskScreen(
                 }
                 Button(
                     onClick = { showTimePicker = true },
-                    colors  = ButtonDefaults.buttonColors(
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor   = Color.White
+                        contentColor = Color.White
                     )
                 ) {
                     Text(text = dueDateMillis?.let {
@@ -1139,9 +1199,12 @@ fun CreateTaskScreen(
                                     utcCal.timeInMillis = selectedDate
                                     val localCal = Calendar.getInstance()
                                     dueDateMillis?.let { localCal.timeInMillis = it }
-                                    localCal.set(Calendar.YEAR,         utcCal.get(Calendar.YEAR))
-                                    localCal.set(Calendar.MONTH,        utcCal.get(Calendar.MONTH))
-                                    localCal.set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
+                                    localCal.set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
+                                    localCal.set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
+                                    localCal.set(
+                                        Calendar.DAY_OF_MONTH,
+                                        utcCal.get(Calendar.DAY_OF_MONTH)
+                                    )
                                     dueDateMillis = localCal.timeInMillis
                                 }
                                 showDatePicker = false
@@ -1152,7 +1215,7 @@ fun CreateTaskScreen(
                     dismissButton = {
                         TextButton(
                             onClick = { showDatePicker = false },
-                            colors  = ButtonDefaults.textButtonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            colors = ButtonDefaults.textButtonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) { Text("Cancel", color = Color.White) }
                     }
                 ) { DatePicker(state = datePickerState) }
@@ -1179,7 +1242,7 @@ fun CreateTaskScreen(
             // --- Priority ---
             Text(text = "Priority", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text(
-                text  = "Choose None to leave priority unassigned",
+                text = "Choose None to leave priority unassigned",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
             )
@@ -1190,7 +1253,9 @@ fun CreateTaskScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .selectable(selected = selectedPriority == option, onClick = { selectedPriority = option })
+                            .selectable(
+                                selected = selectedPriority == option,
+                                onClick = { selectedPriority = option })
                             .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1206,7 +1271,7 @@ fun CreateTaskScreen(
             // Displayed in a 2-column grid (chunked into rows of 2) to save vertical space.
             Text(text = "Timeframe", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text(
-                text  = "Choose None to leave timeframe unassigned",
+                text = "Choose None to leave timeframe unassigned",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
             )
@@ -1217,7 +1282,9 @@ fun CreateTaskScreen(
                             Row(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .selectable(selected = selectedTimeframe == option, onClick = { selectedTimeframe = option }),
+                                    .selectable(
+                                        selected = selectedTimeframe == option,
+                                        onClick = { selectedTimeframe = option }),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 RadioButton(selected = selectedTimeframe == option, onClick = null)
@@ -1240,29 +1307,31 @@ fun CreateTaskScreen(
             // Existing pending subtasks — each has a bullet and a remove (X) button
             subtaskList.forEach { subtask ->
                 Row(
-                    modifier          = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text     = "•",
+                        text = "•",
                         modifier = Modifier.padding(start = 4.dp, end = 8.dp),
-                        color    = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text     = subtask.title,
+                        text = subtask.title,
                         modifier = Modifier.weight(1f),
-                        style    = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium
                     )
                     // X removes the subtask from the in-memory list before saving
                     IconButton(
-                        onClick  = { subtaskList.remove(subtask) },
+                        onClick = { subtaskList.remove(subtask) },
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
                             Icons.Filled.Close,
                             contentDescription = "Remove subtask",
-                            modifier           = Modifier.size(16.dp),
-                            tint               = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -1270,15 +1339,17 @@ fun CreateTaskScreen(
 
             // "Add subtask" input row — keyboard Done or + button appends to the list
             Row(
-                modifier          = Modifier.fillMaxWidth().padding(top = 4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
-                    value           = newSubtaskTitle,
-                    onValueChange   = { newSubtaskTitle = it },
-                    placeholder     = { Text("Add a subtask...") },
-                    modifier        = Modifier.weight(1f),
-                    singleLine      = true,
+                    value = newSubtaskTitle,
+                    onValueChange = { newSubtaskTitle = it },
+                    placeholder = { Text("Add a subtask...") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
                         if (newSubtaskTitle.isNotBlank()) {
@@ -1307,9 +1378,22 @@ fun CreateTaskScreen(
             Button(
                 onClick = {
                     val success = if (isEditing) {
-                        taskViewModel.updateTask(taskId!!, titleInput, dueDateMillis, selectedPriority, selectedTimeframe, subtaskList.toList())
+                        taskViewModel.updateTask(
+                            taskId!!,
+                            titleInput,
+                            dueDateMillis,
+                            selectedPriority,
+                            selectedTimeframe,
+                            subtaskList.toList()
+                        )
                     } else {
-                        taskViewModel.addTask(titleInput, dueDateMillis, selectedPriority, selectedTimeframe, subtaskList.toList())
+                        taskViewModel.addTask(
+                            titleInput,
+                            dueDateMillis,
+                            selectedPriority,
+                            selectedTimeframe,
+                            subtaskList.toList()
+                        )
                     }
                     if (success) {
                         navController.popBackStack()
@@ -1317,10 +1401,12 @@ fun CreateTaskScreen(
                         validationError = "Title cannot be empty."
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                colors   = ButtonDefaults.buttonColors(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor   = Color.White
+                    contentColor = Color.White
                 )
             ) {
                 Text(if (isEditing) "Update Task" else "Save Task", fontSize = 16.sp)
@@ -1331,8 +1417,8 @@ fun CreateTaskScreen(
         if (validationError != null) {
             AlertDialog(
                 onDismissRequest = { validationError = null },
-                title  = { Text("Invalid Input") },
-                text   = { Text(validationError!!) },
+                title = { Text("Invalid Input") },
+                text = { Text(validationError!!) },
                 confirmButton = {
                     TextButton(onClick = { validationError = null }) { Text("OK") }
                 }
@@ -1356,18 +1442,18 @@ fun TimePickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        title  = { Text("Select Time") },
-        text   = { TimePicker(state = state) },
+        title = { Text("Select Time") },
+        text = { TimePicker(state = state) },
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(state.hour, state.minute) },
-                colors  = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) { Text("OK") }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismissRequest,
-                colors  = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) { Text("Cancel") }
         }
     )
@@ -1386,10 +1472,10 @@ fun BottomNavigationBar(navController: NavController) {
 
     NavigationBar {
         NavigationBarItem(
-            icon     = { Icon(Icons.Filled.List, contentDescription = "Tasks") },
-            label    = { Text("Tasks") },
+            icon = { Icon(Icons.Filled.List, contentDescription = "Tasks") },
+            label = { Text("Tasks") },
             selected = currentRoute == "tasks_screen",
-            onClick  = {
+            onClick = {
                 navController.navigate("tasks_screen") {
                     popUpTo(navController.graph.startDestinationId)
                     launchSingleTop = true
@@ -1397,10 +1483,10 @@ fun BottomNavigationBar(navController: NavController) {
             }
         )
         NavigationBarItem(
-            icon     = { Icon(Icons.Filled.Flag, contentDescription = "Priority") },
-            label    = { Text("Priority") },
+            icon = { Icon(Icons.Filled.Flag, contentDescription = "Priority") },
+            label = { Text("Priority") },
             selected = currentRoute == "priority_screen",
-            onClick  = {
+            onClick = {
                 navController.navigate("priority_screen") {
                     popUpTo(navController.graph.startDestinationId)
                     launchSingleTop = true
@@ -1408,10 +1494,10 @@ fun BottomNavigationBar(navController: NavController) {
             }
         )
         NavigationBarItem(
-            icon     = { Icon(Icons.Filled.Star, contentDescription = "Badges") },
-            label    = { Text("Badges") },
+            icon = { Icon(Icons.Filled.Star, contentDescription = "Badges") },
+            label = { Text("Badges") },
             selected = currentRoute == "badges_screen",
-            onClick  = {
+            onClick = {
                 navController.navigate("badges_screen") {
                     popUpTo(navController.graph.startDestinationId)
                     launchSingleTop = true
@@ -1419,10 +1505,10 @@ fun BottomNavigationBar(navController: NavController) {
             }
         )
         NavigationBarItem(
-            icon     = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
-            label    = { Text("Settings") },
+            icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
+            label = { Text("Settings") },
             selected = currentRoute == "settings_screen",
-            onClick  = {
+            onClick = {
                 navController.navigate("settings_screen") {
                     popUpTo(navController.graph.startDestinationId)
                     launchSingleTop = true
